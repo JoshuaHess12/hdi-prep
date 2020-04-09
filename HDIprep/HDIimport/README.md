@@ -11,8 +11,8 @@ Module for high-dimensional image importing to python.
 
 ### Classes and function structure
 **Module structure**
-HDIimport (class)
 ```bash
+HDIimport (class)
 ├── imzMLreader(class)
 ├────── SubsetCoordinates (function)
 ├── CYTreader (class)
@@ -24,8 +24,8 @@ HDIimport (class)
 *To add in custom file formats, integrate your image reader class with HDIimport class by following the structure of TIFreader/H5reader or imzMLreader. For best usage, incorporate coordinate subsampling as well by using SubsetCoordinates function that applies to both the imzMLreader and the CYTreader classes.*
 
 **HDIimport (class) components**
-HDIimport (class)
 ```bash
+HDIimport (class)
 └── .hdi: base component that stores either imzMLreader or CYTreader classes
 ```
  
