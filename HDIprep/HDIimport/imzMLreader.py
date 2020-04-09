@@ -110,6 +110,8 @@ class imzMLreader:
 
         #Add the filename to the data object
         self.data.filename = path_to_imzML
+        #Add None to the data image (not currently parsing full array)
+        self.data.image = None
 
         #Print an update that the import is finished
         print('Finished')
