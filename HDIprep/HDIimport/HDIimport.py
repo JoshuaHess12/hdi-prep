@@ -17,13 +17,15 @@ class HDIimport:
     """Class for importing high-dimensional imaging data or histology data.
     """
 
-    def __init__(self,path_to_data,path_to_markers,flatten,subsample,mask=None):
+    def __init__(self,path_to_data,path_to_markers,flatten,subsample,mask=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
 
         path_to_data: path to imaging data (Ex: path/mydata.extension)
         path_to_markers: path to marker list (Ex: path/mymarkers.csv or None)
         flatten: True to return a flattened pixel data table for dimension reduction
+        mask: Path to tif mask to use for selecting a region to focus on in downstream preparation
+        **kwargs: - input to SubsetCoordinates utils function
         """
 
         #Initialize objects
@@ -45,20 +47,20 @@ class HDIimport:
         if str(path_to_data).endswith(tuple(cyt_ext)):
             #Read the data with CYTreader
             self.hdi = CYTreader.CYTreader(path_to_cyt = path_to_data, path_to_markers = path_to_markers,\
-                subsample = subsample, flatten = flatten, mask = mask)
+                subsample = subsample, flatten = flatten, mask = mask,**kwargs)
 
         #Otherwise read imzML file
         elif str(path_to_data).endswith(tuple(imzML_ext)):
             #Read the data with imzMLreader (CURRENTLY DOES NOT SUPPORT A MASK -- set default to None in class object)
             self.hdi = imzMLreader.imzMLreader(path_to_imzML = path_to_data, path_to_markers = path_to_markers,\
-                subsample = subsample, flatten = flatten)
+                subsample = subsample, flatten = flatten,**kwargs)
 
         #Otherwise read nifti file
         elif str(path_to_data).endswith(tuple(nii_ext)):
             #Read the data with NIFTI1reader
             self.hdi = NIFTI1reader.NIFTI1reader(path_to_nifti = path_to_data, path_to_markers = path_to_markers,\
-                subsample = subsample, flatten = flatten, mask = mask)
-                
+                subsample = subsample, flatten = flatten, mask = mask,**kwargs)
+
         #If none of the above print an update and an error
         else:
             #Raise an error saying that the file extension is not recognized
