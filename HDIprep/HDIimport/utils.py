@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import random
 import scipy.sparse
+from operator import itemgetter
 
 
 #Define function for reading csv marker names
@@ -35,38 +36,86 @@ def ReadMarkers(path_to_markers):
 
 
 #Define function for subsampling random coordinates
-def SubsetCoordinates(coords,n,array_size):
+def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,2)):
         """Subset coordinates and return a list of tuples indicating
         the position of subsetting and where to find those tuples in the list. Also
         return a scipy coo matrix for boolean mask to use with subsetting.
         Note: Coordinates are 1-indexed and not python 0-indexed
 
         coords: list of 3D-tuples indicating the position of pixels
+        array_size: tuple indicating the 2D array size (not counting channels)
+        method: Method of subsampling. Currently supported "grid" and "random"
         n: integer indicating the size of subsampling
         """
+        #####Note: indices are switched row = 1 col = 0 to match imzML parser#####
+        #Check to see if the method is uniform random sampling
+        if method is "random":
+            #Check to see if the value is less than or equal to 1
+            if n <= 1:
+                #Interpret this value as a percentage
+                n = int(len(coords) * n)
+            #Otherwise the value is total pixel count
+            else:
+                #Interpret the value as pixel count
+                n = n
 
-        #Set random seed
-        random.seed(1234)
-        #Take subsample of integers for indexing
-        idx = list(np.random.choice(a=len(coords), size=n,replace=False))
-        #Use the indices to subsample coordinates
-        sub_coords = [coords[c] for c in idx]
-        #Create data with True values same length as sub_coords for scipy coo matrix
-        data = np.ones(len(sub_coords),dtype=np.bool)
-        #Create row data for scipy coo matrix (-1 index for 0-based python)
-        row = np.array([sub_coords[c][1]-1 for c in range(len(sub_coords))])
-        #Create row data for scipy coo matrix (-1 index for 0-based python)
-        col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
+            #Set random seed
+            random.seed(1234)
+            #Take subsample of integers for indexing
+            idx = list(np.random.choice(a=len(coords), size=n,replace=False))
+            #Use the indices to subsample coordinates
+            sub_coords = [coords[c] for c in idx]
+            #Create data with True values same length as sub_coords for scipy coo matrix
+            data = np.ones(len(sub_coords),dtype=np.bool)
+
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            row = np.array([sub_coords[c][1]-1 for c in range(len(sub_coords))])
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
+
+        #Check to see if the method is uniform grid sampling
+        elif method is "grid":
+            #Get the size of the grid
+            grdh = grid_spacing[0]
+            grdw = grid_spacing[1]
+
+            #Get maximum indices for x and y directions
+            max_nh, max_nw = (max(coords,key=itemgetter(1))[1], max(coords,key=itemgetter(0))[0])
+            #Get maximum indices for x and y directions
+            min_nh, min_nw = (min(coords,key=itemgetter(1))[1], min(coords,key=itemgetter(0))[0])
+            #Get grid in height direction and width directions
+            row = np.arange(min_nh, max_nh, grdh)
+            col = np.arange(min_nw, max_nw, grdw)
+            #Create data with True values same length as sub_coords for scipy coo matrix
+            data = np.ones(len(row)*len(col),dtype=np.bool)
+            #Create meshgrid from the grid coordinates
+            row, col = np.meshgrid(row,col)
+
+            #Create list of subcoordinates from mesh -- this is now a bounding box around the mask coordinates
+            sub_coords = list(map(tuple,np.vstack((col.ravel()+1, row.ravel()+1, np.ones(len(data),dtype=np.int))).T))
+            #Intersect the original coordinates with the grid coordinates so if mask or ROI is not square, we can capture
+            sub_coords = list(set(sub_coords) & set(coords))
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            row = np.array([sub_coords[c][1]-1 for c in range(len(sub_coords))])
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
+
+            #Create data with True values same length as sub_coords for scipy coo matrix
+            data = np.ones(len(sub_coords),dtype=np.bool)
+
+        #Otherwise raise an error
+        else:
+            #Raise value error
+            raise ValueError("Method of subsampling entered is not supported. Please enter 'random' or 'grid'")
+
         #Create a subset mask
-        sub_mask = scipy.sparse.coo_matrix((data, (row, col)), shape=array_size)
-
+        sub_mask = scipy.sparse.coo_matrix((data, (row,col)), shape=array_size)
         #Return the objects
         return sub_mask, sub_coords
 
 
-
 #Define function for flattening a z stack image
-def FlattenZstack(z_stack, z_stack_shape, mask, subsample):
+def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     """This function will flatten an ndarray. Assumes the order of dimensions
     is xyc with c being the third channel.
 
@@ -106,17 +155,8 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample):
 
     #Check to see if subsampling
     if subsample is not None:
-        #Check to see if the value is less than or equal to 1
-        if subsample <= 1:
-            #Interpret this value as a percentage
-            n = int(len(coords) * subsample)
-        #Otherwise the value is total pixel count
-        else:
-            #Interpret the value as pixel count
-            n = subsample
-
         #Subset the coordinates using custom function
-        sub_mask, sub_coords = SubsetCoordinates(coords=coords,n=n,array_size=mask.shape)
+        sub_mask, sub_coords = SubsetCoordinates(coords=coords,n=n,array_size=mask.shape, **kwargs)
 
         #Create an array from the sparse scipy matrix
         sub_mask = sub_mask.toarray()
