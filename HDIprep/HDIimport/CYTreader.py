@@ -27,7 +27,7 @@ class CYTreader:
     path_to_cyt: string indicating path to cytometry file (Ex: 'path/CYTdata.ome.tif')
     """
 
-    def __init__(self,path_to_cyt,path_to_markers,flatten,subsample,mask=None):
+    def __init__(self,path_to_cyt,path_to_markers,flatten,subsample,mask=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
         """
@@ -90,7 +90,7 @@ class CYTreader:
         if flatten:
             #Create a pixel table and extract the full list of coordinates being used
             pix, coords = utils.FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
-                mask=mask, subsample=subsample)
+                mask=mask, subsample=subsample, **kwargs)
             #Add the pixel table to our object
             self.data.pixel_table = pd.DataFrame(pix,columns = channels, index = pix.index)
             #Clear the pixel table object to save memory
