@@ -23,7 +23,7 @@ class NIFTI1reader:
     path_to_nifti: string indicating path to .nii file (Ex: 'path/IMSdata.nii')
     """
 
-    def __init__(self,path_to_nifti,flatten,subsample,mask,path_to_markers=None):
+    def __init__(self,path_to_nifti,flatten,subsample,mask,path_to_markers=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
         """
@@ -81,7 +81,7 @@ class NIFTI1reader:
         if flatten:
             #Create a pixel table and extract the full list of coordinates being used
             pix, coords = utils.FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
-                mask=mask, subsample=subsample)
+                mask=mask, subsample=subsample, **kwargs)
             #Add the pixel table to our object
             self.data.pixel_table = pd.DataFrame(pix,columns = channels, index = pix.index)
             #Clear the pixel table object to save memory
