@@ -23,7 +23,7 @@ class imzMLreader:
     path_to_imzML: string indicating path to imzML file (Ex: 'path/IMSdata.imzML')
     """
 
-    def __init__(self,path_to_imzML,flatten,subsample,path_to_markers=None):
+    def __init__(self,path_to_imzML,flatten,subsample,path_to_markers=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
         """
@@ -56,17 +56,8 @@ class imzMLreader:
         if flatten:
             #Check to see if subsampling
             if subsample is not None:
-                #Check to see if the value is less than or equal to 1
-                if subsample <= 1:
-                    #Interpret this value as a percentage
-                    n = int(len(self.data.coordinates) * subsample)
-                #Otherwise the value is total pixel count
-                else:
-                    #Interpret the value as pixel count
-                    n = subsample
-
                 #Subset the coordinates using custom function
-                sub_mask, coords = utils.SubsetCoordinates(coords=self.data.coordinates,n=n,array_size=self.data.array_size)
+                sub_mask, coords = utils.SubsetCoordinates(coords=self.data.coordinates,array_size=self.data.array_size,**kwargs)
                 #Clear space with the mask
                 sub_mask = None
 
