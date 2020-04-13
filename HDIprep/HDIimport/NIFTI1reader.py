@@ -1,70 +1,61 @@
-#Module for cytometry data parsing
+#Module for NIFTI format data parsing
 #Developer: Joshua M. Hess, BSc
 #Developed at the Vaccine & Immunotherapy Center, Mass. General Hospital
 
 #Import external modules
 from pathlib import Path
 import os
-import h5py
-import skimage
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import random
 
 #Import custom modules
-import SubsetCoordinates
-import TIFreader
-import H5reader
 import utils
 
 
 
 #Create a class object to store attributes and functions in
-class CYTreader:
-    """Class for parsing and storing cytometry data that is in the ome.tif(f),
-    h(df)5, or tif(f) format.
+class NIFTI1reader:
+    """Class for parsing and storing data that is in the NIFTI1 format. Depends
+    on and contains the NiBabel python package:
+    https://nipy.org/nibabel/ in a data object.
 
-    path_to_cyt: string indicating path to cytometry file (Ex: 'path/CYTdata.ome.tif')
+    path_to_nifti: string indicating path to .nii file (Ex: 'path/IMSdata.nii')
     """
 
-    def __init__(self,path_to_cyt,path_to_markers,flatten,subsample,mask=None):
+    def __init__(self,path_to_nifti,flatten,subsample,mask,path_to_markers=None):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
         """
 
-        #Create a pathlib object for the path_to_cyt
-        path_to_cyt = Path(path_to_cyt)
+        #Create a pathlib object for the path_to_imzML
+        path_to_nifti = Path(path_to_nifti)
 
         #Set the file extensions that we can use with this class
-        all_ext = [".ome.tif",".ome.tiff",".tif",".tiff",".h5",".hdf5"]
-        #Get file extensions for ome.tif(f) or tif(f) files
-        tif_ext = [".ome.tif",".ome.tiff",".tif",".tiff"]
-        #Get file exntensions for h(df)5 files
-        h5_ext = [".h5",".hdf5"]
+        ext = [".nii"]
 
         #Check to make sure the string is a valid path
-        if not os.path.exists(str(path_to_cyt)):
+        if not os.path.exists(str(path_to_nifti)):
             print('Not a valid path. Try again')
         else:
             print('Valid path...')
             #Check to see if there is a valid file extension for this class
-            if str(path_to_cyt).endswith(tuple(all_ext)):
-                print("Valid file extension...","\nfile name:",str(path_to_cyt),"\nparsing cytometry data...")
+            if str(path_to_nifti).endswith(tuple(ext)):
+                print("Valid file extension...","\nfile name:",str(path_to_nifti),"\nparsing nifti...")
+                #Read imzML and return the parsed data
+                self.data = nib.load(str(path_to_nifti))
 
-                #Read the data by searching through the extensions
-                if str(path_to_cyt).endswith(tuple(tif_ext)):
-                    #Read the ome.tif(f) or tif(f)
-                    self.data = TIFreader.TIFreader(path_to_cyt)
-
-                elif str(path_to_cyt).endswith(tuple(h5_ext)):
-                    #Read h(df)5 data and return the parsed data
-                    self.data = H5reader.H5reader(path_to_cyt)
+                #####Currently transpose the image as default####
+                #Add the image from nibabel to the image object (memmap object)
+                self.data.image = self.data.get_data().T
+                print("Finished parsing nifti")
             else:
                 print("Not a valid file extension")
 
+
         #Add the shape of the image to the class object for future use
         self.data.image_shape = self.data.image.shape
-        #Get the array size for the image
+        #Add the image size to the data object -- note, nifti is transposed!
         self.data.array_size = (self.data.image_shape[0],self.data.image_shape[1])
 
         #Check for a marker list
@@ -112,7 +103,7 @@ class CYTreader:
             self.data.coordinates = None
 
         #Add the filename to the data object
-        self.data.filename = path_to_cyt
+        self.data.filename = path_to_nifti
 
-        #Print an update on the parsing of cytometry data
-        print("Finished parsing cytometry data")
+        #Print an update that the import is finished
+        print('Finished')

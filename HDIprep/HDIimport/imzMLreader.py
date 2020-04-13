@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 #Import custom modules
-import SubsetCoordinates
+import utils
 
 
 #Create a class object to store attributes and functions in
@@ -66,7 +66,7 @@ class imzMLreader:
                     n = subsample
 
                 #Subset the coordinates using custom function
-                sub_mask, coords = SubsetCoordinates.SubsetCoordinates(coords=self.data.coordinates,n=n,array_size=self.data.array_size)
+                sub_mask, coords = utils.SubsetCoordinates(coords=self.data.coordinates,n=n,array_size=self.data.array_size)
                 #Clear space with the mask
                 sub_mask = None
 
