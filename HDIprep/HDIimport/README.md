@@ -8,22 +8,27 @@ Module for high-dimensional image importing to python.
 - nifti
 
 ## Implementation details
-1) Function for importing data is HDIimport
+Function for importing data is HDIimport.
+
 *HDIimport arguments*:
-- path_to_data: path to imaging data (Ex: path/mydata.extension)
-- path_to_markers: path to marker list (Ex: path/mymarkers.csv or None)
-- flatten: True to return a flattened pixel data table for dimension reduction
-- mask: Path to tif mask to use for selecting a region to focus on in downstream preparation
-- **kwargs: - inherited from SubsetCoordinates utils function
+* path_to_data: path to imaging data (Ex: path/mydata.extension)
+* path_to_markers: path to marker list (Ex: path/mymarkers.csv or None)
+* flatten: True to return a flattened pixel data table for dimension reduction
+* mask: Path to tif mask to use for selecting a region to focus on in downstream preparation
+* **kwargs: - inherited from SubsetCoordinates utils function
+  * method: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling
+  * n: number of samples if method is "random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
+  * grid_spacing: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image
+
+*Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
 ### Classes and function structure
-**Module structure**
 ```bash
 HDIimport (class)
 ├── imzMLreader(class)
 ├── CYTreader (class)
 │   ├── TIFreader (class)
-│   ├── H5reader (class)
+│   └── H5reader (class)
 ├── NIFTI1reader (class)
 utils (general functions)
 ```
@@ -81,7 +86,7 @@ NIFTI1reader (class)
 **utils**
 ```bash
 utils
-├── ReadMarkers: function for csv marker reading
-└── SubsetCoordinates: function for subsampling imaging data with or without a mask using uniform grid or uniform random sampling
-    └── FlattenZstack: function for flattening an xyc image to create a pandas data frame with per pixel information
+├── ReadMarkers: csv marker reading
+└── SubsetCoordinates: subsample imaging data with or without a mask using uniform grid or uniform random sampling
+    └── FlattenZstack: flatten an xyc image to create a pandas data frame with per pixel information
 ```
