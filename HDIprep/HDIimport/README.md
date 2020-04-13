@@ -10,15 +10,15 @@ Module for high-dimensional image importing to python.
 ## Implementation details
 Function for importing data is HDIimport.
 
-*HDIimport arguments*:
-* path_to_data: path to imaging data (Ex: path/mydata.extension)
-* path_to_markers: path to marker list (Ex: path/mymarkers.csv or None)
-* flatten: True to return a flattened pixel data table for dimension reduction
-* mask: Path to tif mask to use for selecting a region to focus on in downstream preparation
-* **kwargs: - inherited from SubsetCoordinates utils function
-  * method: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling
-  * n: number of samples if method is "random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
-  * grid_spacing: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image
+***HDIimport arguments***:
+* *path_to_data*: path to imaging data (Ex: path/mydata.extension)
+* *path_to_markers*: path to marker list (Ex: path/mymarkers.csv or None)
+* *flatten*: True to return a flattened pixel data table for dimension reduction
+* *mask*: Path to tif mask to use for selecting a region to focus on in downstream preparation
+* * **kwargs*: - inherited from SubsetCoordinates utils function
+  * *method*: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling
+  * *n*: number of samples if method is "random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
+  * *grid_spacing*: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image
 
 *Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
