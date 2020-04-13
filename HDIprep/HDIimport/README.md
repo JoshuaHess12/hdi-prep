@@ -8,7 +8,13 @@ Module for high-dimensional image importing to python.
 - nifti
 
 ## Implementation details
-
+1) Function for importing data is HDIimport
+*HDIimport arguments*:
+- path_to_data: path to imaging data (Ex: path/mydata.extension)
+- path_to_markers: path to marker list (Ex: path/mymarkers.csv or None)
+- flatten: True to return a flattened pixel data table for dimension reduction
+- mask: Path to tif mask to use for selecting a region to focus on in downstream preparation
+- **kwargs: - inherited from SubsetCoordinates utils function
 
 ### Classes and function structure
 **Module structure**
@@ -19,7 +25,7 @@ HDIimport (class)
 │   ├── TIFreader (class)
 │   ├── H5reader (class)
 ├── NIFTI1reader (class)
-└── utils (general functions)
+utils (general functions)
 ```
 
 *To add in custom file formats, integrate your image reader class with HDIimport class by following the structure of TIFreader/H5reader or imzMLreader. For best usage, incorporate coordinate subsampling as well by using SubsetCoordinates function that applies to both the imzMLreader and the CYTreader classes.*
@@ -70,4 +76,12 @@ NIFTI1reader (class)
     ├── .pixel_table: pandas dataframe containing pixel-level data (rows are individual pixels, columns are channels)
     ├── .coordinates: list of 1-indexed 3D tuples (z=1) representing pixel locations
     └── .sub_coordinates: list of subsampled coordinates used to create pixel_table is subsampling is chosen
+```
+
+**utils**
+```bash
+utils
+├── ReadMarkers: function for csv marker reading
+└── SubsetCoordinates: function for subsampling imaging data with or without a mask using uniform grid or uniform random sampling
+    └── FlattenZstack: function for flattening an xyc image to create a pandas data frame with per pixel information
 ```
