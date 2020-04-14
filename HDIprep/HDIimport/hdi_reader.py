@@ -7,13 +7,13 @@ from pathlib import Path
 import os
 
 #Import custom modules
-import CYTreader
-import imzMLreader
-import NIFTI1reader
+from .cyt_reader import CYTreader
+from .imzml_reader import imzMLreader
+from .nifti1_reader import NIFTI1reader
 
 
 #Create class object to store high-dimensional imaging data
-class HDIimport:
+class HDIreader:
     """Class for importing high-dimensional imaging data or histology data.
     """
 
@@ -46,19 +46,19 @@ class HDIimport:
         #Check to see if there is a valid file extension for this class
         if str(path_to_data).endswith(tuple(cyt_ext)):
             #Read the data with CYTreader
-            self.hdi = CYTreader.CYTreader(path_to_cyt = path_to_data, path_to_markers = path_to_markers,\
+            self.hdi = CYTreader(path_to_cyt = path_to_data, path_to_markers = path_to_markers,\
                 subsample = subsample, flatten = flatten, mask = mask,**kwargs)
 
         #Otherwise read imzML file
         elif str(path_to_data).endswith(tuple(imzML_ext)):
             #Read the data with imzMLreader (CURRENTLY DOES NOT SUPPORT A MASK -- set default to None in class object)
-            self.hdi = imzMLreader.imzMLreader(path_to_imzML = path_to_data, path_to_markers = path_to_markers,\
+            self.hdi = imzMLreader(path_to_imzML = path_to_data, path_to_markers = path_to_markers,\
                 subsample = subsample, flatten = flatten,**kwargs)
 
         #Otherwise read nifti file
         elif str(path_to_data).endswith(tuple(nii_ext)):
             #Read the data with NIFTI1reader
-            self.hdi = NIFTI1reader.NIFTI1reader(path_to_nifti = path_to_data, path_to_markers = path_to_markers,\
+            self.hdi = NIFTI1reader(path_to_nifti = path_to_data, path_to_markers = path_to_markers,\
                 subsample = subsample, flatten = flatten, mask = mask,**kwargs)
 
         #If none of the above print an update and an error

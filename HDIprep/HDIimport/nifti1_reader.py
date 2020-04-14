@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 
 #Import custom modules
-import utils
-
+from .utils import ReadMarkers, FlattenZstack
 
 
 #Create a class object to store attributes and functions in

@@ -8,9 +8,9 @@ Module for high-dimensional image importing to python.
 - nifti
 
 ## Implementation details
-Function for importing data is HDIimport.
+Class object for importing data is HDIreader inside of hdi_reader.py.
 
-***HDIimport arguments***:
+***HDIreader arguments***:
 * *path_to_data*: path to imaging data (Ex: path/mydata.extension)
 * *path_to_markers*: path to marker list (Ex: path/mymarkers.csv or None)
 * *flatten*: True to return a flattened pixel data table for dimension reduction
@@ -23,21 +23,29 @@ Function for importing data is HDIimport.
 *Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
 ### Classes and function structure
+All class objects contain uppercase lettering, and exist inside of all lowercase .py files.
+
 ```bash
-HDIimport (class)
-├── imzMLreader(class)
-├── CYTreader (class)
-│   ├── TIFreader (class)
-│   └── H5reader (class)
-├── NIFTI1reader (class)
-utils (general functions)
+hdi_reader.py
+├── HDIreader (class)
+│   ├── imzml_reader.py
+│   │   └── imzMLreader(class)
+│   ├── nifti1_reader.py
+│   │   └── NIFTI1reader (class)
+│   └── cyt_reader.py (class)
+│       ├── CYTreader(class)
+│       ├── tif_reader.py
+│       │   └── TIFreader(class)
+│       └── h5_reader.py
+│           └── H5reader(class)
+utils.py (general functions)
 ```
 
-*To add in custom file formats, integrate your image reader class with HDIimport class by following the structure of TIFreader/H5reader or imzMLreader. For best usage, incorporate coordinate subsampling as well by using SubsetCoordinates function that applies to both the imzMLreader and the CYTreader classes.*
+*To add in custom file formats, integrate your image reader class with HDIreader class by following the structure of TIFreader/H5reader or imzMLreader. For best usage, incorporate coordinate subsampling as well by using SubsetCoordinates function that applies to both the imzMLreader and the CYTreader classes.*
 
-**HDIimport (class) components**
+**HDIreader (class) components**
 ```bash
-HDIimport (class)
+HDIreader (class)
 └── .hdi: base component that stores imzMLreader, CYTreader, or NIFTI1reader classes
 ```
  

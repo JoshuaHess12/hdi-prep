@@ -154,9 +154,9 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     coords = list(zip(where[1]+1,where[0]+1,np.ones(len(where[0]),dtype=np.int)))
 
     #Check to see if subsampling
-    if subsample is not None:
+    if subsample:
         #Subset the coordinates using custom function
-        sub_mask, sub_coords = SubsetCoordinates(coords=coords,n=n,array_size=mask.shape, **kwargs)
+        sub_mask, sub_coords = SubsetCoordinates(coords=coords,array_size=mask.shape, **kwargs)
 
         #Create an array from the sparse scipy matrix
         sub_mask = sub_mask.toarray()
