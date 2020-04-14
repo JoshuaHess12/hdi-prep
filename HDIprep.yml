@@ -1,0 +1,13 @@
+name: HDIprep
+dependencies:
+  - pathlib
+  - os
+  - h5py
+  - scikit-image
+  - numpy
+  - pandas
+  - random
+  - pyimzml
+  - nibabel
+  - scipy
+  - operator
