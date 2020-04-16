@@ -53,7 +53,7 @@ class HDIreader:
         elif str(path_to_data).endswith(tuple(imzML_ext)):
             #Read the data with imzMLreader (CURRENTLY DOES NOT SUPPORT A MASK -- set default to None in class object)
             self.hdi = imzMLreader(path_to_imzML = path_to_data, path_to_markers = path_to_markers,\
-                subsample = subsample, flatten = flatten,**kwargs)
+                subsample = subsample, flatten = flatten, mask = mask, **kwargs)
 
         #Otherwise read nifti file
         elif str(path_to_data).endswith(tuple(nii_ext)):

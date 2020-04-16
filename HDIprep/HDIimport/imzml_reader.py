@@ -23,7 +23,7 @@ class imzMLreader:
     path_to_imzML: string indicating path to imzML file (Ex: 'path/IMSdata.imzML')
     """
 
-    def __init__(self,path_to_imzML,flatten,subsample,path_to_markers=None,**kwargs):
+    def __init__(self,path_to_imzML,flatten,subsample,mask=None,path_to_markers=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
         """
@@ -56,8 +56,34 @@ class imzMLreader:
         if flatten:
             #Check to see if subsampling
             if subsample is not None:
-                #Subset the coordinates using custom function
-                sub_mask, coords = utils.SubsetCoordinates(coords=self.data.coordinates,array_size=self.data.array_size,**kwargs)
+
+                #Check to see if we are using a mask
+                if mask is not None:
+
+                    #Check to see if the mask is a path
+                    if isinstance(mask, str):
+                        ##############Change in future to take arbitrary masks not just tiff??################
+                        mask = skimage.io.imread(mask,plugin='tifffile')
+
+                    #Ensure that the mask is boolean
+                    mask = np.array(mask,dtype=np.bool)
+                    #Get the coordinates where the mask is
+                    where = np.where(mask)
+                    #Create list of tuples where mask coordinates are (1-indexed) -- form (x,y,z) with z=1 (same as imzML)
+                    coords = list(zip(where[1]+1,where[0]+1,np.ones(len(where[0]),dtype=np.int)))
+                    #intersect the mask coordinates with the IMS coordinates from imzML parser
+                    mask_coords = list(set(coords) & set(self.data.coordinates))
+
+                    #Clear the old coordinates for memory
+                    coords, where, mask = None, None, None
+
+                    #Subset the coordinates using custom function
+                    sub_mask, coords = utils.SubsetCoordinates(coords=mask_coords,array_size=self.data.array_size,**kwargs)
+
+                else:
+                    #Use the original coordinates only for subsampling
+                    sub_mask, coords = utils.SubsetCoordinates(coords=self.data.coordinates,array_size=self.data.array_size,**kwargs)
+
                 #Clear space with the mask
                 sub_mask = None
 

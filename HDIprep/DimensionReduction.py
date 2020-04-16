@@ -22,18 +22,15 @@ import imageio
 from skimage.color import rgb2gray
 import cv2
 
-#Import custom modules
-from HDIimport import HDIimport
 
 
 
 
-######################
+um = umap.UMAP(n_neighbors=5, random_state=42).fit(X_train)
 
-path_to_data = "/Users/joshuahess/Desktop/tmp/DFU_Trimmed_700-850/dfu trimmed_tic.imzML"
-path_to_markers = None
-flatten = True
-msi = HDIimport(path_to_data,path_to_markers,flatten)
+a = um.transform(new)
+
+
 
 
 

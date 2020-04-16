@@ -142,12 +142,16 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     if mask is None:
         #Create numpy boolean mask array with cols = channels an rows = pixels
         mask = np.ones([int(z_stack_shape[0]),z_stack_shape[1]],dtype=np.bool)
+    
     else:
-        ##############Change in future to take arbitrary masks not just tiff??################
-        mask = skimage.io.imread(mask,plugin='tifffile')
+        #Check to see if the mask is a path
+        if isinstance(mask, str):
+            ##############Change in future to take arbitrary masks not just tiff??################
+            mask = skimage.io.imread(mask,plugin='tifffile')
 
         #Ensure that the mask is boolean
         mask = np.array(mask,dtype=np.bool)
+
     #Get the coordinates where the mask is
     where = np.where(mask)
     #Create list of tuples where mask coordinates are (1-indexed) -- form (x,y,z) with z=1 (same as imzML)
