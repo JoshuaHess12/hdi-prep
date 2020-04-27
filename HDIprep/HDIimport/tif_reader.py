@@ -4,8 +4,9 @@
 
 #Import external modules
 from pathlib import Path
-import skimage
+import skimage.io
 import numpy as np
+
 
 
 #Define class object
@@ -26,7 +27,7 @@ class TIFreader:
         path_to_tif = Path(path_to_tif)
 
         #Read tif(f) or ome.tif(f) data and return the parsed data
-        im = skimage.io.imread(path_to_tif, plugin = 'tifffile')
+        im = skimage.io.imread(str(path_to_tif), plugin = 'tifffile')
         #Check to see if the number of channels is greater than one
         im_shape = im.shape
         #Check to see if the image is considered xyc or just xy(single channel)

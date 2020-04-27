@@ -6,7 +6,7 @@
 from pathlib import Path
 import os
 import h5py
-import skimage
+import skimage.io
 import numpy as np
 import pandas as pd
 import random
@@ -51,7 +51,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
         #Check to see if the method is uniform random sampling
         if method is "random":
             #Check to see if the value is less than or equal to 1
-            if n <= 1:
+            if n < 1:
                 #Interpret this value as a percentage
                 n = int(len(coords) * n)
             #Otherwise the value is total pixel count
@@ -142,12 +142,12 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     if mask is None:
         #Create numpy boolean mask array with cols = channels an rows = pixels
         mask = np.ones([int(z_stack_shape[0]),z_stack_shape[1]],dtype=np.bool)
-    
+
     else:
-        #Check to see if the mask is a path
+        #Check to see if the mask is a path (string)
         if isinstance(mask, str):
             ##############Change in future to take arbitrary masks not just tiff??################
-            mask = skimage.io.imread(mask,plugin='tifffile')
+            mask = skimage.io.imread(str(mask),plugin='tifffile')
 
         #Ensure that the mask is boolean
         mask = np.array(mask,dtype=np.bool)

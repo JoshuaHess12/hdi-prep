@@ -6,7 +6,7 @@
 from pathlib import Path
 import os
 import h5py
-import skimage
+import skimage.io
 import numpy as np
 import pandas as pd
 import random
