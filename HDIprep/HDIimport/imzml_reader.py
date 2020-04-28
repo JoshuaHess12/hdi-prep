@@ -9,9 +9,11 @@ from pyimzml.ImzMLParser import getionimage
 from pyimzml.ImzMLParser import ImzMLParser
 import numpy as np
 import pandas as pd
+from operator import itemgetter
 
 #Import custom modules
 from .utils import SubsetCoordinates
+
 
 
 #Create a class object to store attributes and functions in
@@ -72,19 +74,48 @@ class imzMLreader:
                 #intersect the mask coordinates with the IMS coordinates from imzML parser
                 mask_coords = list(set(coords) & set(self.data.coordinates))
 
+                #Reorder the mask coordinates for F style column major format (imzml format)
+                mask_coords = sorted(mask_coords, key = itemgetter(0, 1))
+
                 #Clear the old coordinates for memory
                 coords, where, mask = None, None, None
 
+                #Zip the coordinates into dictionary with list index (Faster with itemgetter)
+                full_coords_dict = dict(zip(self.data.coordinates,range(0,len(self.data.coordinates))))
+                #Find the indices of the mask coordinates -- need for creating dataframe
+                coords_idx = list(itemgetter(*mask_coords)(full_coords_dict))
+
+                #Remove the dictionary to save memory
+                full_coords_dict = None
+
                 #Reset the coordinates object to be only the mask coordinates
                 self.data.coordinates = mask_coords
+
+            #Otherwise create a coords_idx from the full list of coordinates
+            else:
+                #Create list
+                coords_idx = [x for x in range(len(self.data.coordinates))]
 
             #Check to see if subsampling
             if subsample is not None:
                 #Use the coordinates for subsampling
                 sub_mask, coords = SubsetCoordinates(coords=self.data.coordinates,array_size=self.data.array_size,**kwargs)
 
+                #Alter the order to be in column major format Fortran style
+                coords = sorted(coords, key = itemgetter(0, 1))
+
                 #Clear space with the mask
                 sub_mask = None
+
+                #Get the indices now of these coordinates from the coords_idx
+                #coords_idx = [self.data.coordinates.index(x) for x in coords]
+                #Zip the coordinates into dictionary with list index (Faster with itemgetter)
+                tmp_coords_dict = dict(zip(self.data.coordinates,range(0,len(self.data.coordinates))))
+                #Find the indices of the mask coordinates -- need for creating dataframe
+                coords_idx = list(itemgetter(*coords)(tmp_coords_dict))
+
+                #Clear the coordinates dictionary to save memory
+                tmp_coords_dict = None
 
                 #Add the subset coordinates to our object
                 self.data.sub_coordinates = coords
@@ -99,10 +130,15 @@ class imzMLreader:
             #Create numpy array with cols = m/zs an rows = pixels (create pixel table)
             tmp = np.empty([len(coords),\
                 len(self.data.getspectrum(0)[0])])
+
             #iterate through pixels and add to the array
             print('Fetching Spectrum Table...')
             for i, (x,y,z) in enumerate(coords):
-                mzs, intensities = self.data.getspectrum(i)
+                #Get the coordinate index
+                idx = coords_idx[i]
+                #Now use the index to extract the spectrum
+                mzs, intensities = self.data.getspectrum(idx)
+                #Use the original i index to add to the array the data
                 tmp[i,:] = intensities
                 #Clear memory by removing mzs and intensities
                 mzs, intensities = None, None

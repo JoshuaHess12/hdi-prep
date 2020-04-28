@@ -108,8 +108,11 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
             #Raise value error
             raise ValueError("Method of subsampling entered is not supported. Please enter 'random' or 'grid'")
 
+        #Numpy flattens with row major order -- reorder coorinates to index resulting pandas data frame
+        sub_coords = sorted(sub_coords, key = itemgetter(1, 0))
         #Create a subset mask
         sub_mask = scipy.sparse.coo_matrix((data, (row,col)), shape=array_size)
+
         #Return the objects
         return sub_mask, sub_coords
 
@@ -156,6 +159,8 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     where = np.where(mask)
     #Create list of tuples where mask coordinates are (1-indexed) -- form (x,y,z) with z=1 (same as imzML)
     coords = list(zip(where[1]+1,where[0]+1,np.ones(len(where[0]),dtype=np.int)))
+    #Reorder the coordinates to be c style
+    coords = sorted(coords, key = itemgetter(1, 0))
 
     #Check to see if subsampling
     if subsample:
@@ -165,18 +170,18 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
         #Create an array from the sparse scipy matrix
         sub_mask = sub_mask.toarray()
         #Use the mask to extract all the pixels
-        flat_im = z_stack[sub_mask]
+        flat_im = z_stack[np.where(sub_mask)]
         #Remove the masks to save memory
         mask, sub_mask = None, None
-        #Create a pandas dataframe with columns being the number indexes for number of channels
+        #Create a pandas dataframe with columns being the number of channels
         flat_im = pd.DataFrame(flat_im,\
             columns = [str(num) for num in range(0,num_channels)],\
             index = sub_coords)
     #Otherwise there is no subsampling
     else:
         #Use the non-subsampled mask to extract data
-        flat_im = z_stack[mask]
-        #Create a pandas dataframe with columns being the number indexes for number of channels
+        flat_im = z_stack[np.where(mask)]
+        #Create a pandas dataframe with columns being the  number of channels
         flat_im = pd.DataFrame(flat_im,\
             columns = [str(num) for num in range(0,num_channels)],\
             index = coords)

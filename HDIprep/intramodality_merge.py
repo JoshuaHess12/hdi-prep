@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import umap
 import scipy.sparse
+from operator import itemgetter
+
 
 #Import custom modules
 from HDIimport import hdi_reader
@@ -16,167 +18,43 @@ from utils import CreateHyperspectralImage, ExportNifti
 
 
 
-
-
-
-
-#####################
-import skimage
+###TESTING IMC####
+import skimage.io
 import matplotlib.pyplot as plt
-from sklearn.metrics import pairwise_distances
-import sklearn
-from scipy.stats import spearmanr
-from scipy.spatial.distance import pdist, squareform
-import networkx as nx
-from mayavi import mlab
-
-
-mlab.options.offscreen = False
-
-
-
-
-
-
 im1 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/tmp/image.ome.tiff",\
-    path_to_markers=None,flatten=True,subsample=False,mask=None)
-
-test = im1.hdi.data.image[200:400,200:400,:]
-test = np.swapaxes(test,0,2)
-skimage.io.imsave('/Users/joshuahess/Desktop/small_im2.tif',test,plugin='tifffile')
-
-
-#Testing UMAP script
-im1 = hdi_reader.HDIreader(path_to_data = '/Users/joshuahess/Desktop/small_im.tif',path_to_markers=None,flatten=True,subsample=None,mask=None)
-#Testing UMAP script
-im2 = hdi_reader.HDIreader(path_to_data = '/Users/joshuahess/Desktop/small_im2.tif',path_to_markers=None,flatten=True,subsample=None,mask=None)
-test = IntraModalityDataset([im1,im2],modality="IMC")
-test.RunUMAP(n_components=2,n_neighbors=5,random_state=5)
-hyp = test.SpatiallyMapUMAP()
-
-key = list(test.UMAP_embeddings.keys())[0]
-
-knn_dist1 = sklearn.neighbors.kneighbors_graph(test.UMAP_embeddings[key], \
-    n_neighbors=500, mode='distance', metric='minkowski', p=2, metric_params=None, include_self=False, n_jobs=None)
-
-booleanarr1 = knn_dist1.astype(np.bool)
-
-
-plt.imshow(hyp[0][:,:,0])
-plt.imshow(hyp[1][:,:,0])
+    path_to_markers=None,flatten=True,subsample=None,mask=None)
+skimage.io.imsave("small_im2.tif",np.swapaxes(im1.hdi.data.image[:400,:500,:],0,2),plugin='tifffile')
 
 
 
+#****Test iMC one more time :)
+
+#Run for full data
+im1 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/small_im.tif",\
+    path_to_markers=None,flatten=True,subsample=None)
+#Run for subsampled data
+im2 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/small_im2.tif",\
+    path_to_markers=None,flatten=True,subsample=None)
+#Concatenate the data
+test1 = IntraModalityDataset([im1,im2],modality="IMC")
+test1.RunUMAP(n_components = 3)
+results = test1.SpatiallyMapUMAP()
+plt.imshow(results[0])
+plt.imshow(results[1])
+
+
+#Run for subsampled data
 im3 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/small_im.tif",\
-        path_to_markers=None,flatten=True,subsample=True,mask=None,method="grid",grid_spacing=(10,10))
+    path_to_markers=None,flatten=True,method='grid',grid_spacing=(2,2),subsample=True)
+#Run for subsampled data
 im4 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/small_im2.tif",\
-        path_to_markers=None,flatten=True,subsample=True,mask=None,method="grid",grid_spacing=(10,10))
+    path_to_markers=None,flatten=True,method='grid',grid_spacing=(2,2),subsample=True)
+#Concatenate the data
 test2 = IntraModalityDataset([im3,im4],modality="IMC")
-test2.RunUMAP(n_components=2,n_neighbors=5,random_state=5)
-hyp2 = test2.SpatiallyMapUMAP()
-
-plt.imshow(hyp2[0][:,:,0])
-plt.imshow(hyp2[1][:,:,0])
-
-
-
-
-
-
-jacc_full = []
-testing_list = []
-spear_local = []
-spear_local_full = []
-for i in range(booleanarr2.shape[1]):
-
-    #Get indices of full UMAP knn
-    tmp = booleanarr1[i].nonzero()
-
-    testing_list.append(scipy.spatial.distance.jaccard(booleanarr1[i][tmp], booleanarr2[i][tmp]))
-    spear_local.append(spearmanr(knn_dist1[i].toarray().flatten(), knn_dist2[i].toarray().flatten()).correlation)
-
-jacc_full.append(np.array(testing_list).mean())
-spear_local_full.append(np.array(spear_local).mean())
-
-
-plt.scatter()
-plt.imshow(hyp2[1][:,:,1])
-plt.imshow(hyp2[0][:,:,1])
-
-plt.scatter(test2.UMAP_embeddings[key].values[:,0],test2.UMAP_embeddings[key].values[:,1])
-plt.scatter(test.UMAP_embeddings[key].values[:,0],test.UMAP_embeddings[key].values[:,1])
-
-embed_dist = pdist(test2.UMAP_embeddings[key].reindex(list(test.UMAP_embeddings[key].index)))
-
-og_dist = pdist(test.UMAP_embeddings[key])
-spearmanr(og_dist, embed_dist).correlation
-
-##############################
-g = nx.from_scipy_sparse_matrix(knn_dist1, create_using=nx.Graph())
-
-# numpy array of x,y,z positions in sorted node order
-xyz = np.array(test.UMAP_embeddings[key])
-# scalar colors
-
-scalars = np.array(list(g.nodes())) + 5
-
-mlab.figure(1, bgcolor=(0, 0, 0))
-mlab.clf()
-
-pts = mlab.points3d(xyz[:, 0], xyz[:, 1], xyz[:, 2],
-                    scalars,
-                    scale_factor=0.1,
-                    scale_mode='none',
-                    colormap='Blues',
-                    resolution=400)
-
-pts.mlab_source.dataset.lines = np.array(list(g.edges()))
-tube = mlab.pipeline.tube(pts, tube_radius=0.01)
-mlab.pipeline.surface(tube, color=(0.8, 0.8, 0.8))
-
-mlab.savefig('mayavi2_spring.png',size=(400,400))
-
-
-#############################
-
-
-
-
-spear_full = []
-jacc_full = []
-spear_local = []
-for i in [2,5,10,25,35,45,55,65,75,85]:
-
-    print('Working on grid spacing '+str(i))
-
-    im2 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/tmp/DFU_Trimmed_700-850/dfu trimmed_tic.imzML",\
-        path_to_markers=None,flatten=True,subsample=None,mask=sub_mask.toarray())
-
-    im2 = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/small_im.tif",\
-        path_to_markers=None,flatten=True,subsample=True,mask=None,method="grid",grid_spacing=(10,10))
-
-
-    test2 = IntraModalityDataset([im2],modality="IMC")
-    test2.RunUMAP(n_components=2,n_neighbors=5,random_state=5)
-    hyp2 = test2.SpatiallyMapUMAP()
-
-    #Calculate embedding spearman global correlation
-
-    knn_dist2 = sklearn.neighbors.kneighbors_graph(test2.UMAP_embeddings[key].reindex(list(test.UMAP_embeddings[key].index)),\
-        n_neighbors=500, mode='distance', metric='minkowski', p=2, metric_params=None, include_self=False, n_jobs=None)
-
-    booleanarr2 = knn_dist2.astype(np.bool)
-
-    testing_list = []
-    for i in range(booleanarr2.shape[1]):
-
-        testing_list.append(scipy.spatial.distance.jaccard(booleanarr2[i,:].toarray().flatten(), booleanarr1[i,:].toarray().flatten()))
-
-    jacc_full.append(np.array(testing_list).mean())
-
-    #plt.imshow(1-np.array(testing_list).reshape(350,350),cmap='plasma')
-
-    #spear_local.append(spearmanr(knn_dist1.toarray().flatten(), knn_dist2.toarray().flatten()).correlation)
+test2.RunUMAP(n_components = 3)
+results2 = test2.SpatiallyMapUMAP()
+plt.imshow(results2[0])
+plt.imshow(results2[1])
 
 
 
@@ -184,13 +62,40 @@ for i in [2,5,10,25,35,45,55,65,75,85]:
 
 
 
-plt.imshow(hyp2[:,:,3])
+
+
+
+#Get the sample name
+key = list(test1.set_dict.keys())[0]
+
+#Get the distances between objects -- assuming pixel order is the same
+from scipy.spatial.distance import pdist
+embed_dist = pdist(test1.UMAP_embeddings[key].iloc[:3500])
+og_dist = pdist(test2.UMAP_embeddings[key].iloc[:3500])
+#Calculate the spearman correlation between the two distance matrices
+from scipy.stats import spearmanr, pearsonr
+pearsonr(og_dist, embed_dist)
 
 
 
 
+from scipy.spatial import procrustes
+test3_embedding = procrustes(test1.UMAP_embeddings[key],test2.UMAP_embeddings[key])
+new_image = CreateHyperspectralImage(pd.DataFrame(test3_embedding[1]),test2.set_dict[key].hdi.data.array_size,list(test2.UMAP_embeddings[key].index))
+
+plt.imshow(new_image)
+
+plt.scatter(test3_embedding[1][:10500,0],test3_embedding[1][:10500,1])
+
+plt.scatter(test1.UMAP_embeddings[key].iloc[:10500,0],test1.UMAP_embeddings[key].iloc[:10500,1])
+plt.scatter(test2.UMAP_embeddings[key].iloc[:10500,0],test2.UMAP_embeddings[key].iloc[:10500,1])
 
 ####################
+
+
+
+
+
 
 
 
@@ -247,7 +152,7 @@ class IntraModalityDataset:
             #Update the index
             idx = idx+nrows
 
-            #Get the spectrum SpectrumTable
+            #Get the spectrum
             tmp_frame = pd.concat([tmp_frame,hdi_imp.hdi.data.pixel_table])
             #Clear the old pixel table from memory
             hdi_imp.hdi.data.pixel_table = None
@@ -270,6 +175,8 @@ class IntraModalityDataset:
                 #Otherwise use the full coordinates list
                 self.UMAP_embeddings.update({f:pd.DataFrame(UMAP.embedding_[tup[0]:tup[1],:],\
                     index = self.set_dict[f].hdi.data.coordinates)})
+                #Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.UMAP_embeddings[f] = self.UMAP_embeddings[f].reindex(sorted(list(self.UMAP_embeddings[f].index), key = itemgetter(1, 0)))
 
         #Add the umap object to the class
         self.UMAP_object = UMAP
@@ -289,7 +196,7 @@ class IntraModalityDataset:
 
 
         #Run through each object in the set dictionary
-        for f, pixs in self.UMAP_embeddings.items():
+        for f, locs in self.UMAP_embeddings.items():
 
             print("working on "+str(f)+'...')
 
@@ -297,7 +204,7 @@ class IntraModalityDataset:
             if self.set_dict[f].hdi.data.sub_coordinates is not None:
 
                 #Get the inverse pixels
-                inv_pix = list(set(self.set_dict[f].hdi.data.coordinates).difference(set(list(pixs.index))))
+                inv_pix = list(set(self.set_dict[f].hdi.data.coordinates).difference(set(list(locs.index))))
 
                 #Create a mask based off array size and current UMAP data points
                 data = np.ones(len(inv_pix),dtype=np.bool)
@@ -324,13 +231,16 @@ class IntraModalityDataset:
                 #Run the new pixel table through umap transformer
                 embedding_projection = self.UMAP_object.transform(new_data.hdi.data.pixel_table)
                 #Add the projection to dataframe and coerce with existing embedding
-                embedding_projection = pd.DataFrame(embedding_projection,index = new_data.hdi.data.coordinates)
+                embedding_projection = pd.DataFrame(embedding_projection,index = list(new_data.hdi.data.pixel_table.index))
 
                 #Remove the new data to save memory
                 new_data = None
 
                 #Concatenate with existing UMAP object
-                self.UMAP_embeddings[f] = pd.concat([pixs,embedding_projection])
+                self.UMAP_embeddings[f] = pd.concat([locs,embedding_projection])
+
+                #Reindex data frame to row major orientation
+                self.UMAP_embeddings[f] = self.UMAP_embeddings[f].reindex(sorted(list(self.UMAP_embeddings[f].index), key = itemgetter(1, 0)))
 
                 #Use the new embedding to map coordinates to the image
                 hyper_im = CreateHyperspectralImage(embedding = self.UMAP_embeddings[f],\

@@ -60,7 +60,7 @@ class NIFTI1reader:
         #Check for a marker list
         if path_to_markers is not None:
             #Read the channels list
-            channels = utils.ReadMarkers(path_to_markers)
+            channels = ReadMarkers(path_to_markers)
         else:
             #Check to see if the image shape includes a channel (if not, it is one channel)
             if len(self.data.image.shape) > 2:
@@ -79,7 +79,7 @@ class NIFTI1reader:
         #Check to see if creating a pixel table (used for dimension reduction)
         if flatten:
             #Create a pixel table and extract the full list of coordinates being used
-            pix, coords = utils.FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
+            pix, coords = FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
                 mask=mask, subsample=subsample, **kwargs)
             #Add the pixel table to our object
             self.data.pixel_table = pd.DataFrame(pix,columns = channels, index = pix.index)
