@@ -44,8 +44,8 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
 
         coords: list of 3D-tuples indicating the position of pixels
         array_size: tuple indicating the 2D array size (not counting channels)
-        method: Method of subsampling. Currently supported "grid" and "random"
-        n: integer indicating the size of subsampling
+        method: Method of subsampling. Currently supported "grid", "random", and "pseudo-random"
+        n: integer (decimal less than 1) indicating the size of subsampling (percentage)
         """
         #####Note: indices are switched row = 1 col = 0 to match imzML parser#####
         #Check to see if the method is uniform random sampling
@@ -65,6 +65,59 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
             idx = list(np.random.choice(a=len(coords), size=n,replace=False))
             #Use the indices to subsample coordinates
             sub_coords = [coords[c] for c in idx]
+            #Create data with True values same length as sub_coords for scipy coo matrix
+            data = np.ones(len(sub_coords),dtype=np.bool)
+
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            row = np.array([sub_coords[c][1]-1 for c in range(len(sub_coords))])
+            #Create row data for scipy coo matrix (-1 index for 0-based python)
+            col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
+
+        #Check to see if the method is uniform sampling with random after
+        elif method is "pseudo_random":
+            #Check to see if the value is less than or equal to 0.25 for now
+            if n > 0.25:
+                #Raise and error
+                raise(Exception("Psuedo-random sampling is currently only supported with > 25% sampling. Enter value <= 0.25"))
+
+            #intialize the sampling with 2x2 grid
+            grdh = 2
+            grdw = 2
+            #Get maximum indices for x and y directions
+            max_nh, max_nw = (max(coords,key=itemgetter(1))[1], max(coords,key=itemgetter(0))[0])
+            #Get maximum indices for x and y directions
+            min_nh, min_nw = (min(coords,key=itemgetter(1))[1], min(coords,key=itemgetter(0))[0])
+            #Get grid in height direction and width directions
+            row = np.arange(min_nh, max_nh, grdh)
+            col = np.arange(min_nw, max_nw, grdw)
+            #Create data with True values same length as sub_coords for scipy coo matrix
+            data = np.ones(len(row)*len(col),dtype=np.bool)
+            #Create meshgrid from the grid coordinates
+            row, col = np.meshgrid(row,col)
+
+            #Create list of subcoordinates from mesh -- this is now a bounding box around the mask coordinates
+            sub_coords = list(map(tuple,np.vstack((col.ravel()+1, row.ravel()+1, np.ones(len(data),dtype=np.int))).T))
+            #Intersect the original coordinates with the grid coordinates so if mask or ROI is not square, we can capture
+            sub_coords = list(set(sub_coords) & set(coords))
+            #Get number of pixels of grid coordinates and calculate pixels left
+            grid_perc = len(sub_coords)/len(coords)
+
+            #Get number of pixels left to sample
+            n = int(len(coords) * (n-grid_perc))
+
+            #Create an inverse list of pixels
+            inv_pix = list(set(coords).difference(set(sub_coords)))
+
+            #Set random seed
+            random.seed(1234)
+            #Take subsample of integers for indexing from pixels left after grid
+            idx = list(np.random.choice(a=len(inv_pix), size=n,replace=False))
+            #Use the indices to subsample coordinates
+            rand_sub_coords = [inv_pix[c] for c in idx]
+
+            #Add these coordinates to the grid coordinates
+            sub_coords = rand_sub_coords + sub_coords
+
             #Create data with True values same length as sub_coords for scipy coo matrix
             data = np.ones(len(sub_coords),dtype=np.bool)
 
@@ -106,7 +159,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
         #Otherwise raise an error
         else:
             #Raise value error
-            raise ValueError("Method of subsampling entered is not supported. Please enter 'random' or 'grid'")
+            raise(Exception("Method of subsampling entered is not supported. Please enter 'random', 'grid', or 'pseudo_random'"))
 
         #Numpy flattens with row major order -- reorder coorinates to index resulting pandas data frame
         sub_coords = sorted(sub_coords, key = itemgetter(1, 0))
