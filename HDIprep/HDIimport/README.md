@@ -16,9 +16,9 @@ Class object for importing data is HDIreader inside of hdi_reader.py.
 * *flatten*: True to return a flattened pixel data table for dimension reduction
 * *mask*: Path to tif mask to use for selecting a region to focus on in downstream preparation
 * * ***kwargs*: - inherited from SubsetCoordinates utils function
-  * *method*: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling
-  * *n*: number of samples if method is "random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
-  * *grid_spacing*: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image)
+  * *method*: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling, "pseudo_random" for percentage-based random sampling initialized by 2x2 uniform grid sampling (values must be larger than 0.25"
+  * *n*: number of samples if method is "random" or "pseudo_random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
+  * *grid_spacing*: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image (25% sampling))
 
 *Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
@@ -95,6 +95,6 @@ NIFTI1reader (class)
 ```bash
 utils
 ├── ReadMarkers: csv marker reading
-└── SubsetCoordinates: subsample imaging data with or without a mask using uniform grid or uniform random sampling
+└── SubsetCoordinates: subsample imaging data with or without a mask using uniform grid, random sampling, or pseudo random sampling
     └── FlattenZstack: flatten an xyc image to create a pandas data frame with per pixel information
 ```
