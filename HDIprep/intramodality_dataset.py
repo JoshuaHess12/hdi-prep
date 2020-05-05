@@ -187,35 +187,6 @@ class IntraModalityDataset:
         return results_dict
 
 
-    #Add function for exporting UMAP nifti image
-    def ExportNiftiUMAP(self,output_dir,padding=None):
-        """Exporting hyperspectral images resulting from UMAP and
-        spatially mapping UMAP
-
-        filename: input filename to use ExportNifti function from utils.
-        - path (filename) of resulting exporting image (Ex: path/to/new/image.nii or image.nii)
-        padding: tuple indicating height and length 0 pixels padding to add to the image before exporting
-        """
-
-        #Create dictionary with connected file names
-        connect_dict = {}
-
-        #Iterate through the results dictionary from spatially mapping UMAP
-        for f, img in self.umap_spatial_images.items():
-            #Create an image name -- remove .ome in the name if it exists and add umap suffix
-            im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_umap.nii"))
-            #Use utils export nifti function
-            ExportNifti(img,im_name,padding)
-            #Add exported file names to class object -- connect input file name with the exported name
-            connect_dict.update({f:im_name})
-
-        #Add the connecting dictionary to the class object
-        self.umap_spatial_images_export = connect_dict
-
-        #return the dictionary of input names to output names
-        return connect_dict
-
-
     #Create definition for image filtering and processing
     def ApplyManualMask(self):
         """Applying the input mask to image. This function is
@@ -242,7 +213,7 @@ class IntraModalityDataset:
         are automatically converted to grayscale prior to filtering
 
         filter_size: size of disk to use for filter.
-        n_jobs: number of proceses to use for calculations
+        parallel: parallel processing using all processors or not
         """
 
         #Iterate through the set dictionary
@@ -264,24 +235,208 @@ class IntraModalityDataset:
 
 
 
-    def Threshold(self,image,type='otsu',thresh_value):
-        """This function will convert your image to a grayscale version and will
-        perform otsu thresholding on your image to form a mask"""
+    def Threshold(self,type,thresh_value=None,correction=1.0):
+        """Otsu (manual) thresholding of grayscale images. Returns a sparse boolean
+        mask.
+
+        image: numpy array that represents image
+        type: Type of thresholding to use. Options are 'manual' or "otsu"
+        thresh_value: If manual masking, insert a threshold value
+        correction: Correction factor after thresholding. Values >1 make the threshold more
+        stringent. By default, value with be 1 (identity)
+        """
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #If not, use the original image
+                hdi_imp.hdi.data.processed_image = Thresholding(hdi_imp.hdi.data.image,type,thresh_value,correction)
+
+            #Use the initiated image
+            else:
+                #Use the processed image
+                hdi_imp.hdi.data.processed_image = Thresholding(hdi_imp.hdi.data.processed_image,type,thresh_value,correction)
 
 
 
     def Open(self,disk_size,parallel=False):
-        """Morphological opening"""
+    """Morphological opening on boolean array (mask). A circular disk is used for the filtering.
+
+        disk_size: size of disk to use for filter.
+        parallel: number of proceses to use for calculations
+    """
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #If not, use the original image
+                hdi_imp.hdi.data.processed_image = Opening(hdi_imp.hdi.data.image,disk_size,parallel)
+
+            #Use the initiated image
+            else:
+                #Use the processed image
+                hdi_imp.hdi.data.processed_image = Opening(hdi_imp.hdi.data.processed_image,disk_size,parallel)
 
 
 
     def Close(self,disk_size,parallel=False):
-        """Morphological closing"""
+    """Morphological closing on boolean array (mask). A circular disk is used for the filtering.
+
+        disk_size: size of disk to use for filter.
+        parallel: number of proceses to use for calculations
+    """
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #If not, use the original image
+                hdi_imp.hdi.data.processed_image = Closing(hdi_imp.hdi.data.image,disk_size,parallel)
+
+            #Use the initiated image
+            else:
+                #Use the processed image
+                hdi_imp.hdi.data.processed_image = Closing(hdi_imp.hdi.data.processed_image,disk_size,parallel)
+
 
 
     def Fill(self):
-        """Morphological fill"""
+    """Morphological filling on a binary mask. Fills holes
+    """
 
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #If not, use the original image
+                hdi_imp.hdi.data.processed_image = MorphFill(hdi_imp.hdi.data.image)
+
+            #Use the initiated image
+            else:
+                #Use the processed image
+                hdi_imp.hdi.data.processed_image = MorphFill(hdi_imp.hdi.data.processed_image)
+
+
+
+    def NonzeroBox(self):
+        """Use a nonzero indices of a binary mask to create a bounding box for
+        the mask itself and for the original image. This is to be used so that
+        a controlled amount of padding can be added to the edges of the images in
+        a consistent manner
+        """
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #Skip this iteration because the processed image must be present
+                continue
+
+            #If all conditions are satisfied, use the slicing on the images
+            hdi_imp.hdi.data.image,hdi_imp.hdi.data.processed_image = NonzeroSlice(hdi_imp.hdi.data.processed_image,hdi_imp.hdi.data.image)
+
+
+
+    #Create definition for image filtering and processing
+    def ApplyMask(self):
+        """Applying mask to image. This function is
+        primarily used on histology images and images that do not need dimension
+        reduction. Dimension reduction with a mask will by default zero all other pixels
+        in the image outside of the mask. Use this function if not performing dimension
+        reduction. The mask used in this process will be the processed image, and not
+        the input mask with the image. Should be used after a series of morphological
+        operations
+        """
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.processed_image is None:
+                #Skip this image if there is no mask
+                continue
+
+            #Use the mask on the image and replace the image with the masked image
+            hdi_imp.hdi.data.image[~hdi_imp.hdi.data.processed_image.toarray()] = 0
+
+
+
+    #Add function for exporting UMAP nifti image
+    def ExportNifti1(self,output_dir,padding=None):
+        """Exporting hyperspectral images resulting from UMAP and
+        spatially mapping UMAP, or exporting processed histology images. Both of these
+        conditions cant be true. One or the other will be exported, and it will be
+        determined automatically from the class objects
+
+        filename: input filename to use ExportNifti function from utils.
+        - path (filename) of resulting exporting image (Ex: path/to/new/image.nii or image.nii)
+        padding: tuple indicating height and length 0 pixels padding to add to the image before exporting
+        """
+
+        #Create dictionary with connected file names
+        connect_dict = {}
+
+        #Check to see if umap spatial images is not empty
+        if not self.umap_spatial_images is None:
+            #Iterate through the results dictionary from spatially mapping UMAP
+            for f, img in self.umap_spatial_images.items():
+                #Create an image name -- remove .ome in the name if it exists and add umap suffix
+                im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_umap.nii"))
+                #Use utils export nifti function
+                ExportNifti(img,im_name,padding)
+                #Add exported file names to class object -- connect input file name with the exported name
+                connect_dict.update({f:im_name})
+
+            #Add the connecting dictionary to the class object
+            self.umap_spatial_images_export = connect_dict
+
+        #Otherwise, assuming that the images to be exported are processed images (not umap)
+        else:
+            #Iterate through the set dictionary
+            for f, hdi_imp in self.set_dict.items():
+                #Ensure that the mask is not none
+                if hdi_imp.hdi.data.image is None:
+                    #Skip this image if there is no mask
+                    continue
+
+                #Create an image name -- remove .ome in the name if it exists and add umap suffix
+                im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_processed.nii"))
+                #Use utils export nifti function
+                ExportNifti(img,im_name,padding)
+                #Add exported file names to class object -- connect input file name with the exported name
+                connect_dict.update({f:im_name})
+
+            #Add the connecting dictionary to the class object
+            self.processed_images_export = connect_dict
+
+        #return the dictionary of input names to output names
+        return connect_dict
 
 
 #Read the data using hdi_reader and access all files

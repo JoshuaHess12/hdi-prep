@@ -120,7 +120,7 @@ def MedFilter(image,filter_size,parallel=False):
 
 
 
-def Threshold(image,type,thresh_value,correction=1.0):
+def Thresholding(image,type,thresh_value=None,correction=1.0):
     """Otsu (manual) thresholding of grayscale images. Returns a sparse boolean
     mask.
 
@@ -233,27 +233,52 @@ def Closing(mask,disk_size,parallel=False):
     return scipy.sparse.coo_matrix(mask,dtype=np.bool)
 
 
-def MorphFill(self,image):
-    """This function will perform morphological filling on your histology image
-    mask"""
+def MorphFill(mask):
+    """Morphological filling on a binary mask. Fills holes
+    """
+
+    #Ensure that the image is boolean
+    if not mask.dtype is np.dtype(np.bool):
+        #Raise an exception
+        raise(Exception("Mask must be a boolean array!"))
+
+    #Proceed to process the mask as an array
+    if isinstance(mask, scipy.sparse.coo_matrix):
+        #Convert to array
+        mask = mask.toarray()
+
     #Filling in the mask
-    print('Performing Morphological Fill...')
-    filled_mask = ndimage.binary_fill_holes(image).astype('uint8')
-    plt.imshow(filled_mask)
-    plt.title("Filled Mask")
-    plt.show()
-
-    return filled_mask
+    mask = scipy.ndimage.binary_fill_holes(mask)
+    #Return the mask
+    return scipy.sparse.coo_matrix(mask,dtype=np.bool)
 
 
-import skimage.io
-image = skimage.io.imread("/Users/joshuahess/Desktop/tmp/15gridspacing.tif",plugin='tifffile')
-import matplotlib.pyplot as plt
-mask = skimage.color.rgb2gray(image) <0.5
-plt.imshow(mask)
-mask.dtype
-test=scipy.sparse.coo_matrix(mask,dtype=np.bool)
-test.dtype is np.dtype(np.bool)
 
-disk = skimage.morphology.disk(5)
-skimage.morphology.opening(mask,selem = disk)
+def NonzeroSlice(mask,original):
+    """Slice original image and mask to be a certain size based on bounding
+    region around mask"""
+
+    #Ensure that the image is boolean
+    if not mask.dtype is np.dtype(np.bool):
+        #Raise an exception
+        raise(Exception("Mask must be a boolean array!"))
+
+    #Proceed to process the mask as an array
+    if isinstance(mask, scipy.sparse.coo_matrix):
+        #Convert to array
+        mask = mask.toarray()
+
+    #Get nonzero indices from your mask so we can apply to original image
+    nonzero = np.nonzero(mask)
+    #Get bounding box
+    minx = min(nonzero[0])
+    maxx = max(nonzero[0])
+    miny = min(nonzero[1])
+    maxy = max(nonzero[1])
+    #Extract sliced, nonzero regions from your original image
+    original = original[minx:maxx,miny:maxy]
+    #Extract sliced, nonzero regions from your mask image
+    mask = mask[minx:maxx,miny:maxy]
+
+    #Return the original image and then the mask as a sparse matrix
+    return original, scipy.sparse.coo_matrix(mask,dtype=np.bool)
