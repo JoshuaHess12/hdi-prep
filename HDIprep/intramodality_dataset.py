@@ -4,6 +4,7 @@
 
 #Import external moduless
 from pathlib import Path
+import os
 import sys
 import numpy as np
 import pandas as pd
@@ -15,7 +16,7 @@ from operator import itemgetter
 
 #Import custom modules
 from HDIimport import hdi_reader
-from utils import CreateHyperspectralImage, ExportNifti, MedFilter
+import utils
 
 
 
@@ -166,12 +167,12 @@ class IntraModalityDataset:
                 self.umap_embeddings[f] = self.umap_embeddings[f].reindex(sorted(list(self.umap_embeddings[f].index), key = itemgetter(1, 0)))
 
                 #Use the new embedding to map coordinates to the image
-                hyper_im = CreateHyperspectralImage(embedding = self.umap_embeddings[f],\
+                hyper_im = utils.CreateHyperspectralImage(embedding = self.umap_embeddings[f],\
                     array_size = self.set_dict[f].hdi.data.array_size,coordinates = list(self.umap_embeddings[f].index))
 
             else:
                 #Use the new embedding to map coordinates to the image
-                hyper_im = CreateHyperspectralImage(embedding = self.umap_embeddings[f],\
+                hyper_im = utils.CreateHyperspectralImage(embedding = self.umap_embeddings[f],\
                     array_size = self.set_dict[f].hdi.data.array_size,coordinates = list(self.umap_embeddings[f].index))
 
             #Update list
@@ -202,9 +203,30 @@ class IntraModalityDataset:
             if hdi_imp.hdi.data.mask is None:
                 #Skip this image if there is no mask
                 continue
+            #Ensure that the image itself is not none
+            if hdi_imp.hdi.data.image is None:
+                #Skip this image if there is no mask
+                continue
 
-            #Use the mask on the image and replace the image with the masked image
-            hdi_imp.hdi.data.image[~hdi_imp.hdi.data.mask.toarray()] = 0
+            #Check to see if the preprocessed is initiated
+            if hdi_imp.hdi.data.processed_image is None:
+                #If not, use the original image
+                hdi_imp.hdi.data.processed_image = hdi_imp.hdi.data.image.copy()
+                #Use the mask on the image
+                hdi_imp.hdi.data.processed_image[~hdi_imp.hdi.data.mask.toarray()] = 0
+            #Otherwise the processed image exists and now check the data type
+            else:
+                #Proceed to process the processed image as an array
+                if isinstance(hdi_imp.hdi.data.processed_image, scipy.sparse.coo_matrix):
+                    #Convert to array
+                    hdi_imp.hdi.data.processed_image = hdi_imp.hdi.data.processed_image.toarray()
+
+                    #Use the mask on the image
+                    hdi_imp.hdi.data.processed_image[~hdi_imp.hdi.data.mask.toarray()] = 0
+                    #Turn the processed mask back to sparse matrix
+                    hdi_imp.hdi.data.processed_image = scipy.sparse.coo_matrix(hdi_imp.hdi.data.processed_image,dtype=np.bool)
+
+
 
 
     def MedianFilter(self,filter_size,parallel=False):
@@ -226,12 +248,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = MedFilter(hdi_imp.hdi.data.image,filter_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.MedFilter(hdi_imp.hdi.data.image,filter_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = MedFilter(hdi_imp.hdi.data.processed_image,filter_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.MedFilter(hdi_imp.hdi.data.processed_image,filter_size,parallel)
 
 
 
@@ -256,21 +278,21 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = Thresholding(hdi_imp.hdi.data.image,type,thresh_value,correction)
+                hdi_imp.hdi.data.processed_image = utils.Thresholding(hdi_imp.hdi.data.image,type,thresh_value,correction)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = Thresholding(hdi_imp.hdi.data.processed_image,type,thresh_value,correction)
+                hdi_imp.hdi.data.processed_image = utils.Thresholding(hdi_imp.hdi.data.processed_image,type,thresh_value,correction)
 
 
 
     def Open(self,disk_size,parallel=False):
-    """Morphological opening on boolean array (mask). A circular disk is used for the filtering.
+        """Morphological opening on boolean array (mask). A circular disk is used for the filtering.
 
         disk_size: size of disk to use for filter.
         parallel: number of proceses to use for calculations
-    """
+        """
 
         #Iterate through the set dictionary
         for f, hdi_imp in self.set_dict.items():
@@ -282,21 +304,21 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = Opening(hdi_imp.hdi.data.image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.Opening(hdi_imp.hdi.data.image,disk_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = Opening(hdi_imp.hdi.data.processed_image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.Opening(hdi_imp.hdi.data.processed_image,disk_size,parallel)
 
 
 
     def Close(self,disk_size,parallel=False):
-    """Morphological closing on boolean array (mask). A circular disk is used for the filtering.
+        """Morphological closing on boolean array (mask). A circular disk is used for the filtering.
 
         disk_size: size of disk to use for filter.
         parallel: number of proceses to use for calculations
-    """
+        """
 
         #Iterate through the set dictionary
         for f, hdi_imp in self.set_dict.items():
@@ -308,18 +330,18 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = Closing(hdi_imp.hdi.data.image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.Closing(hdi_imp.hdi.data.image,disk_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = Closing(hdi_imp.hdi.data.processed_image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = utils.Closing(hdi_imp.hdi.data.processed_image,disk_size,parallel)
 
 
 
     def Fill(self):
-    """Morphological filling on a binary mask. Fills holes
-    """
+        """Morphological filling on a binary mask. Fills holes
+        """
 
         #Iterate through the set dictionary
         for f, hdi_imp in self.set_dict.items():
@@ -331,12 +353,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = MorphFill(hdi_imp.hdi.data.image)
+                hdi_imp.hdi.data.processed_image = utils.MorphFill(hdi_imp.hdi.data.image)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = MorphFill(hdi_imp.hdi.data.processed_image)
+                hdi_imp.hdi.data.processed_image = utils.MorphFill(hdi_imp.hdi.data.processed_image)
 
 
 
@@ -360,7 +382,7 @@ class IntraModalityDataset:
                 continue
 
             #If all conditions are satisfied, use the slicing on the images
-            hdi_imp.hdi.data.image,hdi_imp.hdi.data.processed_image = NonzeroSlice(hdi_imp.hdi.data.processed_image,hdi_imp.hdi.data.image)
+            hdi_imp.hdi.data.image,hdi_imp.hdi.data.processed_image = utils.NonzeroSlice(hdi_imp.hdi.data.processed_image,hdi_imp.hdi.data.image)
 
 
 
@@ -409,7 +431,7 @@ class IntraModalityDataset:
                 #Create an image name -- remove .ome in the name if it exists and add umap suffix
                 im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_umap.nii"))
                 #Use utils export nifti function
-                ExportNifti(img,im_name,padding)
+                utils.ExportNifti(img,im_name,padding)
                 #Add exported file names to class object -- connect input file name with the exported name
                 connect_dict.update({f:im_name})
 
@@ -428,7 +450,7 @@ class IntraModalityDataset:
                 #Create an image name -- remove .ome in the name if it exists and add umap suffix
                 im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_processed.nii"))
                 #Use utils export nifti function
-                ExportNifti(img,im_name,padding)
+                utils.ExportNifti(hdi_imp.hdi.data.image,im_name,padding)
                 #Add exported file names to class object -- connect input file name with the exported name
                 connect_dict.update({f:im_name})
 
@@ -437,19 +459,3 @@ class IntraModalityDataset:
 
         #return the dictionary of input names to output names
         return connect_dict
-
-
-#Read the data using hdi_reader and access all files
-og_dat = hdi_reader.HDIreader(path_to_data = "/Users/joshuahess/Desktop/tmp/15gridspacing.tif",\
-                path_to_markers=None,flatten=True,subsample=None,mask ="/Users/joshuahess/Desktop/tmp/MaskCircle.tif")
-import matplotlib.pyplot as plt
-plt.imshow(og_dat.hdi.data.image)
-
-len(test.set_dict[key].hdi.data.processed_image.shape)
-
-test = IntraModalityDataset([og_dat],"test")
-test.MedianFilter(50,parallel=True)
-#Get the key of the image
-key = list(test.set_dict.keys())[0]
-plt.imshow(test.set_dict[key].hdi.data.processed_image)
-import skimage.filters
