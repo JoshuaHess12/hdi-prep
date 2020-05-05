@@ -58,6 +58,8 @@ CYTreader (class)
     ├── .channels: list of data channel names (If included. If not, a range of numbers equal to number of channels)
     ├── .filename: pathlib object storing the file name of the data
     ├── .image: numpy array storing the n-dimensional image (inherited from TIFreader/H5reader)
+    ├── .processed_image: intialized as none. Gets modified in intramodality_dataset class through processing
+    ├── .mask: scipy sparse coordinate matrix containing input mask (or none)
     ├── .pixel_table: pandas dataframe containing pixel-level data (rows are individual pixels, columns are channels)
     ├── .coordinates: list of 1-indexed 3D tuples (z=1) representing pixel locations
     └── .sub_coordinates: list of subsampled coordinates used to create pixel_table is subsampling is chosen
@@ -72,6 +74,8 @@ imzMLreader (class)
     ├── .channels: list of data channel names (If included. If not, a range of numbers equal to number of channels)
     ├── .filename: pathlib object storing the file name of the data
     ├── .image: None -- currently not supported to create a full array from the imzML data (not currently needed)
+    ├── .processed_image: intialized as none.
+    ├── .mask: scipy sparse coordinate matrix containing input mask (or none)
     ├── .pixel_table: pandas dataframe containing pixel-level data (rows are individual pixels, columns are channels)
     ├── .coordinates: list of 1-indexed 3D tuples (z=1) representing pixel locations
     └── .sub_coordinates: list of subsampled coordinates used to create pixel_table is subsampling is chosen
@@ -85,7 +89,9 @@ NIFTI1reader (class)
     ├── .image_shape: image shape (2D or 3D value with channels included)
     ├── .channels: list of data channel names (If included. If not, a range of numbers equal to number of channels)
     ├── .filename: pathlib object storing the file name of the data
-    ├── .image: None -- currently not supported to create a full array from the imzML data (not currently needed)
+    ├── .image: numpy array storing the n-dimensional image
+    ├── .processed_image: intialized as none. Gets modified in intramodality_dataset class through processing
+    ├── .mask: scipy sparse coordinate matrix containing input mask (or none)
     ├── .pixel_table: pandas dataframe containing pixel-level data (rows are individual pixels, columns are channels)
     ├── .coordinates: list of 1-indexed 3D tuples (z=1) representing pixel locations
     └── .sub_coordinates: list of subsampled coordinates used to create pixel_table is subsampling is chosen
