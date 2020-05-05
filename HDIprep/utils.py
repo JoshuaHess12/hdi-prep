@@ -6,13 +6,17 @@
 import numpy as np
 import pandas as pd
 import nibabel as nib
-
+from pathlib import Path
+import skimage.filters
+import skimage.morphology
+import skimage.color
+import scipy.sparse
 
 
 #Define function
 def CreateHyperspectralImage(embedding,array_size,coordinates):
     """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
-    imaging data.
+    imaging data by rescaling each channel from 0-1
 
     array_size: tuple indicating size of image
     embedding: Embedding resulting from dimension reduction
@@ -53,32 +57,203 @@ def CreateHyperspectralImage(embedding,array_size,coordinates):
 
 
 
-def ExportNifti(image,filename=None,rgb=False):
+def ExportNifti(image,filename,padding=None):
     """This function will export your final images to nifti format for image
-    registration with elastix
+    registration with elastix.
 
-    Your filename endings must be .nii
-    new_size must be a tuple of integers"""
-    
-    #Get a copy of the image so we dont change it
-    tmp = image.copy()
-    #Add in your rotation so we can store it for later registration
-    self.data.Image_rot = rot
-    #Optional to change the image size
-    if resize:
-        tmp = cv2.resize(tmp,new_size)
-    self.data.Image_resize_shape = new_size
-    #Create the nifti objects
-    print('Exporting nifti stack image...')
-    nifti_col = nib.Nifti1Image(np.rot90(tmp,rot), affine=np.eye(4))
-    nib.save(nifti_col, filename)
-    print('Finished exporting nifti stack image')
-    #Convert to grayscale if you choose
-    if grayscale:
-        fin_gray = rgb2gray(tmp)
-        filename_gray = filename+'_gray.nii'
-        #Export the grayscale image
-        print('Exporting nifti gray image...')
-        nifti_org = nib.Nifti1Image(np.rot90(fin_gray,rot), affine=np.eye(4))
-        nib.save(nifti_org, filename_gray)
-        print('Finished exporting nifti gray image')
+    image: numpy ndarray containing imaging data
+    filename: path (filename) of resulting exporting image (Ex: path/to/new/image.nii or image.nii)
+    padding: tuple indicating the pad to be added onto the image in the height and length direction
+
+    Your filename endings must be .nii!!
+    """
+
+    #Create pathlib object from the filename
+    filename = Path(filename)
+
+    #Print update
+    print('Exporting nifti image stack...')
+    #Check to see if padding
+    if padding is not None:
+        image = np.pad(image, [(padding[0],padding[0]),(padding[1],padding[1]),(0,0)], mode = 'constant')
+    #Create nifti object -- transpose axes because of the transformation!
+    nifti_im = nib.Nifti1Image(image.transpose(1,0,2), affine=np.eye(4))
+    #Save the image
+    nib.save(nifti_im, str(filename))
+    #Print update
+    print('Finished exporting '+str(filename))
+
+
+
+def MedFilter(image,filter_size,parallel=False):
+    """Median filtering of images to remove salt and pepper noise.
+    A circular disk is used for the filtering. Images are automatically converted to
+    single channel grayscale images if they arent already in single channel format
+
+    filter_size: size of disk to use for filter.
+    parallel: number of proceses to use for calculations
+    """
+
+    #Ensure that the image is grayscale
+    if len(image)>2:
+        #Not yet converted to grayscale - use grayscale image
+        image = skimage.color.rgb2gray(image)
+
+    #Check to see if parallel computation
+    if parallel:
+        #Filter the image to remove salt and pepper noise (use original image)
+        filtered_im = skimage.util.apply_parallel(
+            skimage.filters.median,
+            image,
+            extra_keywords={
+                #Set size of circular filter
+                "selem":skimage.morphology.disk(filter_size)
+            }
+        )
+    #Use single processor
+    else:
+        #Otherwise use only singe processor
+        filtered_im = skimage.filters.median(image,selem=skimage.morphology.disk(filter_size))
+
+    #Return the filtered image
+    return filtered_im
+
+
+
+def Threshold(image,type,thresh_value,correction=1.0):
+    """Otsu (manual) thresholding of grayscale images. Returns a sparse boolean
+    mask.
+
+    image: numpy array that represents image
+    type: Type of thresholding to use. Options are 'manual' or "otsu"
+    thresh_value: If manual masking, insert a threshold value
+    correction: Correction factor after thresholding. Values >1 make the threshold more
+    stringent. By default, value with be 1 (identity)
+    """
+
+    #Ensure that the image is grayscale
+    if len(image)>2:
+        #Not yet converted to grayscale - use grayscale image
+        image = skimage.color.rgb2gray(image)
+
+    #Check is the threshold type is otsu
+    if type == 'otsu':
+        #Otsu threshold
+        thresh_value = skimage.filters.threshold_otsu(image)*correction
+
+    #Check if manual thresholding
+    elif type == 'manual':
+        #manual threshold
+        thresh_value = thresh_value*correction
+
+    #Otherwise raise an exception!
+    else:
+        #Raise exception
+        raise(Exception('Threshold type not supported!'))
+
+    #Create a mask from the threshold value
+    thresh_img = image < thresh_value
+    #Convert the mask to a boolean sparse matrix
+    return scipy.sparse.coo_matrix(thresh_img,dtype=np.bool)
+
+
+
+def Opening(mask,disk_size,parallel=False):
+    """Morphological opening on boolean array (mask). A circular disk is used for the filtering.
+
+        disk_size: size of disk to use for filter.
+        parallel: number of proceses to use for calculations
+    """
+
+    #Ensure that the image is boolean
+    if not mask.dtype is np.dtype(np.bool):
+        #Raise an exception
+        raise(Exception("Mask must be a boolean array!"))
+
+    #Proceed to process the mask as an array
+    if isinstance(mask, scipy.sparse.coo_matrix):
+        #Convert to array
+        mask = mask.toarray()
+
+    #Check to see if parallel computation
+    if parallel:
+        #Filter the image to remove salt and pepper noise (use original image)
+        mask = skimage.util.apply_parallel(
+            skimage.morphology.opening,
+            mask,
+            extra_keywords={
+                #Set size of circular filter
+                "selem":skimage.morphology.disk(disk_size)
+            }
+        )
+    #Use single processor
+    else:
+        #Otherwise use only singe processor
+        mask = skimage.morphology.opening(mask,selem=skimage.morphology.disk(disk_size))
+
+    #Convert the mask back to scipy sparse matrix for storage
+    return scipy.sparse.coo_matrix(mask,dtype=np.bool)
+
+
+
+def Closing(mask,disk_size,parallel=False):
+    """Morphological closing on boolean array (mask). A circular disk is used for the filtering.
+
+        disk_size: size of disk to use for filter.
+        parallel: number of proceses to use for calculations
+    """
+
+    #Ensure that the image is boolean
+    if not mask.dtype is np.dtype(np.bool):
+        #Raise an exception
+        raise(Exception("Mask must be a boolean array!"))
+
+    #Proceed to process the mask as an array
+    if isinstance(mask, scipy.sparse.coo_matrix):
+        #Convert to array
+        mask = mask.toarray()
+
+    #Check to see if parallel computation
+    if parallel:
+        #Filter the image to remove salt and pepper noise (use original image)
+        mask = skimage.util.apply_parallel(
+            skimage.morphology.closing,
+            mask,
+            extra_keywords={
+                #Set size of circular filter
+                "selem":skimage.morphology.disk(disk_size)
+            }
+        )
+    #Use single processor
+    else:
+        #Otherwise use only singe processor
+        mask = skimage.morphology.closing(mask,selem=skimage.morphology.disk(disk_size))
+
+    #Convert the mask back to scipy sparse matrix for storage
+    return scipy.sparse.coo_matrix(mask,dtype=np.bool)
+
+
+def MorphFill(self,image):
+    """This function will perform morphological filling on your histology image
+    mask"""
+    #Filling in the mask
+    print('Performing Morphological Fill...')
+    filled_mask = ndimage.binary_fill_holes(image).astype('uint8')
+    plt.imshow(filled_mask)
+    plt.title("Filled Mask")
+    plt.show()
+
+    return filled_mask
+
+
+import skimage.io
+image = skimage.io.imread("/Users/joshuahess/Desktop/tmp/15gridspacing.tif",plugin='tifffile')
+import matplotlib.pyplot as plt
+mask = skimage.color.rgb2gray(image) <0.5
+plt.imshow(mask)
+mask.dtype
+test=scipy.sparse.coo_matrix(mask,dtype=np.bool)
+test.dtype is np.dtype(np.bool)
+
+disk = skimage.morphology.disk(5)
+skimage.morphology.opening(mask,selem = disk)

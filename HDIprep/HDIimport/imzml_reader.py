@@ -54,19 +54,28 @@ class imzMLreader:
         self.data.array_size = (self.data.imzmldict["max count of pixels y"],\
             self.data.imzmldict["max count of pixels x"])
 
+        #Check to see if the mask exists
+        if mask is not None:
+            #Check to see if the mask is a path (string)
+            if isinstance(mask, str):
+                ##############Change in future to take arbitrary masks not just tiff################
+                mask = skimage.io.imread(str(mask),plugin='tifffile')
+            #Ensure the mask is a sparse boolean array
+            mask = scipy.sparse.coo_matrix(mask,dtype=np.bool)
+
+        #Add the mask to the class object -- even if it is none. Will not be applied to image yet
+        self.data.mask = mask
+        #Create an object for a filtered/processed working
+        self.data.processed_image = None
+
         #Check to see if creating a pixel table (used for dimension reduction)
         if flatten:
 
             #Check to see if we are using a mask
             if mask is not None:
 
-                #Check to see if the mask is a path
-                if isinstance(mask, str):
-                    ##############Change in future to take arbitrary masks not just tiff??################
-                    mask = skimage.io.imread(mask,plugin='tifffile')
-
                 #Ensure that the mask is boolean
-                mask = np.array(mask,dtype=np.bool)
+                mask = np.array(mask.toarray(),dtype=np.bool)
                 #Get the coordinates where the mask is
                 where = np.where(mask)
                 #Create list of tuples where mask coordinates are (1-indexed) -- form (x,y,z) with z=1 (same as imzML)

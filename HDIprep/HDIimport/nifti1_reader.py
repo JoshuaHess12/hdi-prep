@@ -51,11 +51,25 @@ class NIFTI1reader:
             else:
                 print("Not a valid file extension")
 
+        #Create an object for a filtered/processed working
+        self.data.processed_image = None
 
         #Add the shape of the image to the class object for future use
         self.data.image_shape = self.data.image.shape
         #Add the image size to the data object -- note, nifti is transposed!
         self.data.array_size = (self.data.image_shape[0],self.data.image_shape[1])
+
+        #Check to see if the mask exists
+        if mask is not None:
+            #Check to see if the mask is a path (string)
+            if isinstance(mask, str):
+                ##############Change in future to take arbitrary masks not just tiff??################
+                mask = skimage.io.imread(str(mask),plugin='tifffile')
+            #Ensure the mask is a sparse boolean array
+            mask = scipy.sparse.coo_matrix(mask,dtype=np.bool)
+
+        #Add the mask to the class object -- even if it is none. Will not be applied to image yet
+        self.data.mask = mask
 
         #Check for a marker list
         if path_to_markers is not None:
@@ -80,7 +94,7 @@ class NIFTI1reader:
         if flatten:
             #Create a pixel table and extract the full list of coordinates being used
             pix, coords = FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
-                mask=mask, subsample=subsample, **kwargs)
+                mask=self.data.mask, subsample=subsample, **kwargs)
             #Add the pixel table to our object
             self.data.pixel_table = pd.DataFrame(pix,columns = channels, index = pix.index)
             #Clear the pixel table object to save memory

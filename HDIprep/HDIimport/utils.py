@@ -202,8 +202,12 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     else:
         #Check to see if the mask is a path (string)
         if isinstance(mask, str):
-            ##############Change in future to take arbitrary masks not just tiff??################
+            ##############Change in future to take arbitrary masks not just tiff?################
             mask = skimage.io.imread(str(mask),plugin='tifffile')
+        #Otherwise check for sparse coo matrix
+        elif isinstance(mask,scipy.sparse.coo_matrix):
+            #Convert to numpy array and boolean
+            mask = mask.toarray()
 
         #Ensure that the mask is boolean
         mask = np.array(mask,dtype=np.bool)
@@ -225,7 +229,7 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
         #Use the mask to extract all the pixels
         flat_im = z_stack[np.where(sub_mask)]
         #Remove the masks to save memory
-        mask, sub_mask = None, None
+        sub_mask = None
         #Create a pandas dataframe with columns being the number of channels
         flat_im = pd.DataFrame(flat_im,\
             columns = [str(num) for num in range(0,num_channels)],\
@@ -238,5 +242,6 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
         flat_im = pd.DataFrame(flat_im,\
             columns = [str(num) for num in range(0,num_channels)],\
             index = coords)
+
     #Return the flattened array
     return flat_im, coords
