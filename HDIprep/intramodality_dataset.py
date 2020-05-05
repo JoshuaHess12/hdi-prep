@@ -16,6 +16,7 @@ from operator import itemgetter
 
 #Import custom modules
 from HDIimport import hdi_reader
+import morphology
 import utils
 
 
@@ -46,6 +47,7 @@ class IntraModalityDataset:
         for dat in list_of_HDIimports:
             #Update the dictionary with keys being filenames
             self.set_dict.update({dat.hdi.data.filename:dat})
+
 
 
     #Create dimension reduction method with UMAP
@@ -104,6 +106,7 @@ class IntraModalityDataset:
 
         #Add the umap object to the class
         self.umap_object = UMAP
+
 
 
     #Add function for creating hyperspectral image from UMAP
@@ -178,14 +181,15 @@ class IntraModalityDataset:
             #Update list
             results_dict.update({f:hyper_im})
 
+            #add this hyperspectral image to the hdi_import object as processed_image
+            self.set_dict[f].hdi.data.processed_image = hyper_im
+
         #print update
         print('Finished spatial mapping')
 
-        #Add the dictionary to the class object
-        self.umap_spatial_images = results_dict
-
         #Return the resulting images
         return results_dict
+
 
 
     #Create definition for image filtering and processing
@@ -228,7 +232,6 @@ class IntraModalityDataset:
 
 
 
-
     def MedianFilter(self,filter_size,parallel=False):
         """Median filtering of images to remove salt and pepper noise.
         A circular disk is used for the filtering. Images that are not single channel
@@ -248,12 +251,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = utils.MedFilter(hdi_imp.hdi.data.image,filter_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.MedFilter(hdi_imp.hdi.data.image,filter_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = utils.MedFilter(hdi_imp.hdi.data.processed_image,filter_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.MedFilter(hdi_imp.hdi.data.processed_image,filter_size,parallel)
 
 
 
@@ -278,12 +281,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = utils.Thresholding(hdi_imp.hdi.data.image,type,thresh_value,correction)
+                hdi_imp.hdi.data.processed_image = morphology.Thresholding(hdi_imp.hdi.data.image,type,thresh_value,correction)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = utils.Thresholding(hdi_imp.hdi.data.processed_image,type,thresh_value,correction)
+                hdi_imp.hdi.data.processed_image = morphology.Thresholding(hdi_imp.hdi.data.processed_image,type,thresh_value,correction)
 
 
 
@@ -304,12 +307,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = utils.Opening(hdi_imp.hdi.data.image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.Opening(hdi_imp.hdi.data.image,disk_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = utils.Opening(hdi_imp.hdi.data.processed_image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.Opening(hdi_imp.hdi.data.processed_image,disk_size,parallel)
 
 
 
@@ -330,12 +333,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = utils.Closing(hdi_imp.hdi.data.image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.Closing(hdi_imp.hdi.data.image,disk_size,parallel)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = utils.Closing(hdi_imp.hdi.data.processed_image,disk_size,parallel)
+                hdi_imp.hdi.data.processed_image = morphology.Closing(hdi_imp.hdi.data.processed_image,disk_size,parallel)
 
 
 
@@ -353,12 +356,12 @@ class IntraModalityDataset:
             #Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 #If not, use the original image
-                hdi_imp.hdi.data.processed_image = utils.MorphFill(hdi_imp.hdi.data.image)
+                hdi_imp.hdi.data.processed_image = morphology.MorphFill(hdi_imp.hdi.data.image)
 
             #Use the initiated image
             else:
                 #Use the processed image
-                hdi_imp.hdi.data.processed_image = utils.MorphFill(hdi_imp.hdi.data.processed_image)
+                hdi_imp.hdi.data.processed_image = morphology.MorphFill(hdi_imp.hdi.data.processed_image)
 
 
 
@@ -382,7 +385,7 @@ class IntraModalityDataset:
                 continue
 
             #If all conditions are satisfied, use the slicing on the images
-            hdi_imp.hdi.data.image,hdi_imp.hdi.data.processed_image = utils.NonzeroSlice(hdi_imp.hdi.data.processed_image,hdi_imp.hdi.data.image)
+            hdi_imp.hdi.data.image,hdi_imp.hdi.data.processed_image = morphology.NonzeroSlice(hdi_imp.hdi.data.processed_image,hdi_imp.hdi.data.image)
 
 
 
@@ -404,8 +407,12 @@ class IntraModalityDataset:
                 #Skip this image if there is no mask
                 continue
 
+            #Create a temporary image based on the current image
+            tmp_im = hdi_imp.hdi.data.image.copy()
             #Use the mask on the image and replace the image with the masked image
-            hdi_imp.hdi.data.image[~hdi_imp.hdi.data.processed_image.toarray()] = 0
+            tmp_im[~hdi_imp.hdi.data.processed_image.toarray()] = 0
+            #Set the processed image as the masked array
+            hdi_imp.hdi.data.processed_image = tmp_im
 
 
 
@@ -424,38 +431,29 @@ class IntraModalityDataset:
         #Create dictionary with connected file names
         connect_dict = {}
 
-        #Check to see if umap spatial images is not empty
-        if not self.umap_spatial_images is None:
-            #Iterate through the results dictionary from spatially mapping UMAP
-            for f, img in self.umap_spatial_images.items():
-                #Create an image name -- remove .ome in the name if it exists and add umap suffix
-                im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_umap.nii"))
-                #Use utils export nifti function
-                utils.ExportNifti(img,im_name,padding)
-                #Add exported file names to class object -- connect input file name with the exported name
-                connect_dict.update({f:im_name})
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Create an image name -- remove .ome in the name if it exists and add umap suffix
+            im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_"+str(self.modality)+"_processed.nii"))
 
-            #Add the connecting dictionary to the class object
-            self.umap_spatial_images_export = connect_dict
-
-        #Otherwise, assuming that the images to be exported are processed images (not umap)
-        else:
-            #Iterate through the set dictionary
-            for f, hdi_imp in self.set_dict.items():
-                #Ensure that the mask is not none
+            #Ensure that the mask is not none
+            if hdi_imp.hdi.data.processed_image is None:
+                #Make sure the image exists
                 if hdi_imp.hdi.data.image is None:
-                    #Skip this image if there is no mask
                     continue
-
-                #Create an image name -- remove .ome in the name if it exists and add umap suffix
-                im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_processed.nii"))
+                #Otherwise export the image
+                else:
+                    #Export the original image
+                    utils.ExportNifti(hdi_imp.hdi.data.image,im_name,padding)
+            #Otherwise export the processed image
+            else:
                 #Use utils export nifti function
-                utils.ExportNifti(hdi_imp.hdi.data.image,im_name,padding)
-                #Add exported file names to class object -- connect input file name with the exported name
-                connect_dict.update({f:im_name})
+                utils.ExportNifti(hdi_imp.hdi.data.processed_image,im_name,padding)
+            #Add exported file names to class object -- connect input file name with the exported name
+            connect_dict.update({f:im_name})
 
-            #Add the connecting dictionary to the class object
-            self.processed_images_export = connect_dict
+        #Add the connecting dictionary to the class object
+        self.processed_images_export = connect_dict
 
         #return the dictionary of input names to output names
         return connect_dict
