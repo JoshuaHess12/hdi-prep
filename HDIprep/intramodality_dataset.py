@@ -457,3 +457,28 @@ class IntraModalityDataset:
 
         #return the dictionary of input names to output names
         return connect_dict
+
+
+
+#Define function for reading data with multiple input paths
+def CreateDataset(list_of_paths,modality,masks,**kwargs):
+    """Create an intramodality imaging dataset based on a given list of paths
+    for imaging files
+
+    returns an instance of class IntraModalityDataset
+    """
+
+    #Create a list to store the hdi_reader sets in
+    data = []
+    #Iterate through each path
+    for p in list_of_paths:
+        #Ensure that it is a pathlib object
+        p = Path(p)
+        #Read the data using hdi_reader
+        p_dat = hdi_reader.HDIreader(path_to_data=p,**kwargs)
+        #Append this p_dat to the data list
+        data.append(p_dat)
+    #Concatenate the list of data to a single intramodality dataset
+    data = IntraModalityDataset(data,modality)
+    #Return the IntraModalityDataset
+    return data

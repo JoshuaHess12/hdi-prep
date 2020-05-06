@@ -17,7 +17,7 @@ class HDIreader:
     """Class for importing high-dimensional imaging data or histology data.
     """
 
-    def __init__(self,path_to_data,path_to_markers,flatten,subsample,mask=None,**kwargs):
+    def __init__(self,path_to_data,path_to_markers=None,flatten=False,subsample=None,mask=None,**kwargs):
         """Initialize class to store data in. Ensure appropriate file format
         and return a data object with pixel table.
 

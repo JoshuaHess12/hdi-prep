@@ -12,6 +12,7 @@ import pandas as pd
 import random
 import scipy.sparse
 from operator import itemgetter
+from ast import literal_eval
 
 
 #Define function for reading csv marker names
@@ -128,6 +129,9 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
 
         #Check to see if the method is uniform grid sampling
         elif method is "grid":
+
+            #ensure the grid spacing is interpreted correctly
+            grid_spacing = literal_eval(grid_spacing)
             #Get the size of the grid
             grdh = grid_spacing[0]
             grdw = grid_spacing[1]
