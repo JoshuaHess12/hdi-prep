@@ -13,7 +13,6 @@ import scipy.sparse
 import skimage
 from operator import itemgetter
 
-
 #Import custom modules
 from HDIimport import hdi_reader
 import morphology
@@ -39,8 +38,6 @@ class IntraModalityDataset:
         self.modality = str(modality)
         self.umap_object = None
         self.umap_embeddings = {}
-        self.umap_spatial_images = None
-        self.umap_spatial_images_export = None
         self.processed_images_export = None
 
         #Iterate through the list of HDIimports and add them to the set dictionary
@@ -188,7 +185,7 @@ class IntraModalityDataset:
         print('Finished spatial mapping')
 
         #Return the resulting images
-        return results_dict
+        #return results_dict
 
 
 
@@ -456,7 +453,7 @@ class IntraModalityDataset:
         self.processed_images_export = connect_dict
 
         #return the dictionary of input names to output names
-        return connect_dict
+        #return connect_dict
 
 
 

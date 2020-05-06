@@ -131,7 +131,10 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
         elif method == "grid":
 
             #ensure the grid spacing is interpreted correctly
-            grid_spacing = literal_eval(grid_spacing)
+            if isinstance(grid_spacing,str):
+                #Interpret the grid spacing as tuple
+                grid_spacing = literal_eval(grid_spacing)
+    
             #Get the size of the grid
             grdh = grid_spacing[0]
             grdw = grid_spacing[1]
