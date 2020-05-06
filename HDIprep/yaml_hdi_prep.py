@@ -32,8 +32,10 @@ def ParseYAML(path_to_yaml):
             print(exc)
 
     #Use the import options in the yml object to import all datasets
-    intramod_set = intramodality_dataset.IntraModalityDataset(**yml["ImportOptions"])
-
+    intramod_set = intramodality_dataset.CreateDataset(**yml["ImportOptions"])
+    
 
 result = getattr(test, yml["test"][0])(n_components=2)
 test.umap_embeddings
+
+yml["ImportOptions"]['method'] is "grid"

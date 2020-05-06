@@ -50,7 +50,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
         """
         #####Note: indices are switched row = 1 col = 0 to match imzML parser#####
         #Check to see if the method is uniform random sampling
-        if method is "random":
+        if method == "random":
             #Check to see if the value is less than or equal to 1
             if n < 1:
                 #Interpret this value as a percentage
@@ -75,7 +75,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
             col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
 
         #Check to see if the method is uniform sampling with random after
-        elif method is "pseudo_random":
+        elif method == "pseudo_random":
             #Check to see if the value is less than or equal to 0.25 for now
             if n > 0.25:
                 #Raise and error
@@ -128,7 +128,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
             col = np.array([sub_coords[c][0]-1 for c in range(len(sub_coords))])
 
         #Check to see if the method is uniform grid sampling
-        elif method is "grid":
+        elif method == "grid":
 
             #ensure the grid spacing is interpreted correctly
             grid_spacing = literal_eval(grid_spacing)
