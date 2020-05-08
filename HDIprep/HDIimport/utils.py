@@ -77,9 +77,9 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
         #Check to see if the method is uniform sampling with random after
         elif method == "pseudo_random":
             #Check to see if the value is less than or equal to 0.25 for now
-            if n > 0.25:
+            if n < 0.25:
                 #Raise and error
-                raise(Exception("Psuedo-random sampling is currently only supported with > 25% sampling. Enter value <= 0.25"))
+                raise(Exception("Psuedo-random sampling is currently only supported with > 25% sampling. Enter value > 0.25"))
 
             #intialize the sampling with 2x2 grid
             grdh = 2
@@ -134,7 +134,7 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
             if isinstance(grid_spacing,str):
                 #Interpret the grid spacing as tuple
                 grid_spacing = literal_eval(grid_spacing)
-    
+
             #Get the size of the grid
             grdh = grid_spacing[0]
             grdw = grid_spacing[1]

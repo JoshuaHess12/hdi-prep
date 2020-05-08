@@ -50,6 +50,13 @@ def RunHDIprepYAML(path_to_yaml):
         elif isinstance(step, dict):
             #Get the key value
             step = list(yml["ProcessingSteps"][s].keys())[0]
+
+            #Check if the step is RunOptimalUMAP
+            if step == 'RunOptimalUMAP':
+                #Read the data, and replace the value of subsampling
+                print('OKAY')
+                ####################ADD OPTIMAL UMAP########################
+
             #Apply the processing step
             getattr(intramod_set, step)(**yml["ProcessingSteps"][s][step])
         #Otherwise raise an exception

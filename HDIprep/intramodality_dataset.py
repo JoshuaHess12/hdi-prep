@@ -8,13 +8,22 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import umap
 import scipy.sparse
 import skimage
+import seaborn as sns
+from sklearn.utils import check_random_state
+from sklearn.preprocessing import MinMaxScaler
+from scipy.optimize import curve_fit
+from ast import literal_eval
 from operator import itemgetter
+import uncertainties.unumpy as unp
+import uncertainties as unc
 
 #Import custom modules
 from HDIimport import hdi_reader
+import fuzzy_operations as fuzz
 import morphology
 import utils
 
@@ -38,6 +47,8 @@ class IntraModalityDataset:
         self.modality = str(modality)
         self.umap_object = None
         self.umap_embeddings = {}
+        self.umap_multi_metric = {}
+        self.umap_multi_embeddings = {}
         self.processed_images_export = None
 
         #Iterate through the list of HDIimports and add them to the set dictionary
@@ -78,7 +89,7 @@ class IntraModalityDataset:
             #Get the spectrum
             tmp_frame = pd.concat([tmp_frame,hdi_imp.hdi.data.pixel_table])
             #Clear the old pixel table from memory
-            hdi_imp.hdi.data.pixel_table = None
+            #hdi_imp.hdi.data.pixel_table = None
 
         #print updates
         print('Running UMAP on concatenated '+str(self.modality)+' data...')
@@ -103,6 +114,195 @@ class IntraModalityDataset:
 
         #Add the umap object to the class
         self.umap_object = UMAP
+
+
+
+    def RunOptimalUMAP(self,dim_range,export_metric=False,export_plot=False,n_jobs=1,**kwargs):
+        """Run UMAP over a range of dimensions to choose optimal embedding by empirical
+        observation of fuzzy set cross entropy.
+
+        dim_range: tuple indicating a range of embedding dimensions (Ex: (1,11) is 1-10 -- python range)
+        normalized_cutoff: error delta to stop embedding -- not always going to converge, so all embedding
+        dimensions will be tested. If cutoff is not reached, a warning will appear, and the lowest delta
+        will be used
+        **kwargs: extra parameters to pass to UMAP (Ex: n_neighbors = 15, random_state = 223)
+        """
+
+        #Create a dictionary to store indices in
+        file_idx = {}
+        #Create a counter
+        idx = 0
+        #Create a list to store data tables in
+        pixel_list = []
+        #Create a blank frame
+        tmp_frame = pd.DataFrame()
+
+        #Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            #Get the number of rows in the spectrum table
+            nrows = hdi_imp.hdi.data.pixel_table.shape[0]
+            #update the list of concatenation indices with filename
+            file_idx.update({f:(idx,idx+nrows)})
+            #Update the index
+            idx = idx+nrows
+
+            #Get the spectrum
+            tmp_frame = pd.concat([tmp_frame,hdi_imp.hdi.data.pixel_table])
+            #Clear the old pixel table from memory
+            #hdi_imp.hdi.data.pixel_table = None
+
+        #Create list to store the results in
+        ce_res = {}
+        #Create a dictionary to store the embeddings in
+        embed_dict = {}
+
+        #Check to see if the dim_range is a string
+        if isinstance(dim_range,str):
+            dim_range = literal_eval(dim_range)
+
+        #Set up the dimension range for UMAP
+        dim_range = range(dim_range[0],dim_range[1])
+
+        #Run UMAP on the first iteration -- we will skip simplicial set construction in next iterations
+        UMAP_0 = umap.UMAP(n_components = dim_range[0],**kwargs)
+        #Fit the concatenated dataframe
+        embed_0 = UMAP_0.fit(tmp_frame)
+        #Update the embedding dictionary
+        embed_dict.update({dim_range[0]:embed_0.embedding_})
+
+        #Compute the fuzzy set cross entropy
+        cs = fuzz.FuzzySetCrossEntropy(embed_0.embedding_,embed_0.graph_,embed_0.min_dist,n_jobs)
+        #Update the results for fuzzy cross entropy
+        ce_res.update({dim_range[0]:cs})
+
+        #Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+        for dim in range(dim_range[1],dim_range[-1]+1):
+
+            #Print update for this dimension
+            print('Embedding in dimension '+str(dim))
+            #Use previous simplicial set and embedding components to embed in higher dimension
+            alt_embed = umap.umap_.simplicial_set_embedding(data = embed_0._raw_data,\
+                        graph = embed_0.graph_,\
+                        n_components = dim,\
+                        initial_alpha = embed_0._initial_alpha,\
+                        a = embed_0._a,\
+                        b = embed_0._b,\
+                        gamma = embed_0.repulsion_strength,\
+                        negative_sample_rate = embed_0.negative_sample_rate,\
+                        #Default umap behavior is n_epochs None -- converts to 0
+                        n_epochs = 0,\
+                        init = UMAP_0.init,\
+                        random_state = check_random_state(embed_0.random_state),\
+                        metric = embed_0._input_distance_func,\
+                        metric_kwds = embed_0._metric_kwds,\
+                        output_metric = embed_0._output_distance_func,\
+                        output_metric_kwds = embed_0._output_metric_kwds,\
+                        euclidean_output = embed_0.output_metric in ("euclidean", "l2"),\
+                        parallel = embed_0.random_state is None,\
+                        verbose = embed_0.verbose
+                    )
+            #Print update
+            print('Finished embedding')
+
+            #Update the embedding dictionary
+            embed_dict.update({dim_range[dim-1]:embed_0.embedding_})
+
+            #Compute the fuzzy set cross entropy
+            cs = fuzz.FuzzySetCrossEntropy(alt_embed, embed_0.graph_,embed_0.min_dist, n_jobs)
+            #Update list for now
+            ce_res.update({dim:cs})
+
+        #Construct a dataframe from the dictionary of results
+        ce_res = pd.DataFrame(ce_res,index=["Cross-Entropy"]).T
+
+        #Print update
+        print('Finding optimal embedding dimension through exponential fit...')
+        #Calculate the min-max normalized cross-entropy
+        ce_res_norm = MinMaxScaler().fit_transform(ce_res)
+        #Convert back to pandas dataframe
+        ce_res_norm = pd.DataFrame(ce_res_norm,columns=["Scaled Cross-Entropy"],index = [x for x in dim_range])
+
+        #Get the metric values
+        met = ce_res_norm["Scaled Cross-Entropy"].values
+        #Get the x axis information
+        xdata = np.int64(ce_res_norm.index.values)
+        #Fit the data using exponential function
+        popt, pcov = curve_fit(utils.Exp, xdata, met, p0 = (0, 0.01, 1))
+
+        #create parameters from scipy fit
+        a, b, c = unc.correlated_values(popt, pcov)
+
+        #Create a tuple indicating the 95% interval containing the asymptote in c
+        asympt = (c.n-c.s,c.n+c.s)
+
+        #create equally spaced samples between range of dimensions
+        px = np.linspace(dim_range[0], dim_range[-1]+1, 100000)
+
+        #use unumpy.exp to create samples
+        py = a * unp.exp(-b * px) + c
+        #extract expected values
+        nom = unp.nominal_values(py)
+        #extract stds
+        std = unp.std_devs(py)
+
+        #Iterate through samples to find the instance that value falls in 95% c value
+        for val in range(len(py)):
+            #Extract the nominal value
+            tmp_nom = py[val].n
+            #check if nominal value falls within 95% CI for asymptote
+            if (asympt[0] <= tmp_nom <= asympt[1]):
+                #break the loop
+                break
+        #Extract the nominal value at this index -- round up (any float value lower is not observed -- dimensions are int)
+        opt_dim = int(np.ceil(px[val]))
+        #Print update
+        print('Optimal UMAP embedding dimension is '+ str(opt_dim))
+
+        #Check to see if exporting plot
+        if export_plot:
+            #plot the fit value
+            plt.plot(px, nom, c='r',label="Fitted Curve",linewidth=3)
+            #add 2 sigma uncertainty lines
+            plt.plot(px, nom - 2 * std, c='c',label="95% CI",alpha=0.6,linewidth=3)
+            plt.plot(px, nom + 2 * std, c='c',alpha=0.6,linewidth=3)
+            #plot the observed values
+            plt.plot(xdata, met, 'ko', label="Observed Data",markersize=8)
+            #Pot legend
+            plt.legend()
+            #Save figure
+            plt.savefig('OptimalUMAP.jpeg',dpi=1200)
+
+
+
+
+
+
+        ##################
+        #print updates
+        print('Running UMAP on concatenated '+str(self.modality)+' data...')
+        #Set up UMAP parameters
+        UMAP = umap.UMAP(**kwargs).fit(tmp_frame)
+        #print update
+        print('Finished UMAP')
+
+        #Unravel the UMAP embedding for each sample
+        for f, tup in file_idx.items():
+            #Check to see if file has subsampling
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                #Extract the corresponding index from  UMAP embedding with subsample coordinates
+                self.umap_embeddings.update({f:pd.DataFrame(UMAP.embedding_[tup[0]:tup[1],:],\
+                    index = self.set_dict[f].hdi.data.sub_coordinates)})
+            else:
+                #Otherwise use the full coordinates list
+                self.umap_embeddings.update({f:pd.DataFrame(UMAP.embedding_[tup[0]:tup[1],:],\
+                    index = self.set_dict[f].hdi.data.coordinates)})
+                #Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(sorted(list(self.umap_embeddings[f].index), key = itemgetter(1, 0)))
+
+        #Add the umap object to the class
+        self.umap_object = UMAP
+        ###################
+
 
 
 

@@ -79,3 +79,10 @@ def ExportNifti(image,filename,padding=None):
     nib.save(nifti_im, str(filename))
     #Print update
     print('Finished exporting '+str(filename))
+
+
+
+def Exp(x, a, b, c):
+    """Exponential function to use for regression
+    """
+    return a * np.exp(-b * x) + c
