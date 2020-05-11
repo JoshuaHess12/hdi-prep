@@ -9,7 +9,6 @@ from pathlib import Path
 #Import custom modules
 import intramodality_dataset
 
-path_to_yaml = "/Users/joshuahess/Desktop/example.yaml"
 
 #Define parsing function
 def RunHDIprepYAML(path_to_yaml):
