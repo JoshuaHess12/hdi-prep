@@ -35,7 +35,6 @@ def RunHDIprepYAML(path_to_yaml):
 
     #Iterate through each step to check for Running UMAP optimal dimension
     for s in range(len(yml["ProcessingSteps"])):
-        s=0
 
         #Get the step -- either a string (if no extra input arguments, or a dictionary with key and value)
         step = yml["ProcessingSteps"][s]
@@ -95,7 +94,6 @@ def RunHDIprepYAML(path_to_yaml):
 
                 #Replace the Runoptimal umap option with RunUMAP for the next step
                 yml["ProcessingSteps"][s] = {'RunUMAP':umap_args}
-
 
     #Use the import options in the yml object to import all datasets
     intramod_set = intramodality_dataset.CreateDataset(**yml["ImportOptions"])
