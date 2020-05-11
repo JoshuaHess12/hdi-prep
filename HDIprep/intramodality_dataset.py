@@ -117,7 +117,7 @@ class IntraModalityDataset:
 
 
 
-    def RunOptimalUMAP(self,dim_range,export_metric=False,export_plot=False,n_jobs=1,**kwargs):
+    def RunOptimalUMAP(self,dim_range,export_diagnostics=False, output_dir=None, n_jobs=1,**kwargs):
         """Run UMAP over a range of dimensions to choose optimal embedding by empirical
         observation of fuzzy set cross entropy.
 
@@ -166,12 +166,12 @@ class IntraModalityDataset:
         #Run UMAP on the first iteration -- we will skip simplicial set construction in next iterations
         UMAP_0 = umap.UMAP(n_components = dim_range[0],**kwargs)
         #Fit the concatenated dataframe
-        embed_0 = UMAP_0.fit(tmp_frame)
+        UMAP = UMAP_0.fit(tmp_frame)
         #Update the embedding dictionary
-        embed_dict.update({dim_range[0]:embed_0.embedding_})
+        embed_dict.update({dim_range[0]:UMAP.embedding_})
 
         #Compute the fuzzy set cross entropy
-        cs = fuzz.FuzzySetCrossEntropy(embed_0.embedding_,embed_0.graph_,embed_0.min_dist,n_jobs)
+        cs = fuzz.FuzzySetCrossEntropy(UMAP.embedding_,UMAP.graph_,UMAP.min_dist,n_jobs)
         #Update the results for fuzzy cross entropy
         ce_res.update({dim_range[0]:cs})
 
@@ -181,34 +181,34 @@ class IntraModalityDataset:
             #Print update for this dimension
             print('Embedding in dimension '+str(dim))
             #Use previous simplicial set and embedding components to embed in higher dimension
-            alt_embed = umap.umap_.simplicial_set_embedding(data = embed_0._raw_data,\
-                        graph = embed_0.graph_,\
+            alt_embed = umap.umap_.simplicial_set_embedding(data = UMAP._raw_data,\
+                        graph = UMAP.graph_,\
                         n_components = dim,\
-                        initial_alpha = embed_0._initial_alpha,\
-                        a = embed_0._a,\
-                        b = embed_0._b,\
-                        gamma = embed_0.repulsion_strength,\
-                        negative_sample_rate = embed_0.negative_sample_rate,\
+                        initial_alpha = UMAP._initial_alpha,\
+                        a = UMAP._a,\
+                        b = UMAP._b,\
+                        gamma = UMAP.repulsion_strength,\
+                        negative_sample_rate = UMAP.negative_sample_rate,\
                         #Default umap behavior is n_epochs None -- converts to 0
                         n_epochs = 0,\
                         init = UMAP_0.init,\
-                        random_state = check_random_state(embed_0.random_state),\
-                        metric = embed_0._input_distance_func,\
-                        metric_kwds = embed_0._metric_kwds,\
-                        output_metric = embed_0._output_distance_func,\
-                        output_metric_kwds = embed_0._output_metric_kwds,\
-                        euclidean_output = embed_0.output_metric in ("euclidean", "l2"),\
-                        parallel = embed_0.random_state is None,\
-                        verbose = embed_0.verbose
+                        random_state = check_random_state(UMAP.random_state),\
+                        metric = UMAP._input_distance_func,\
+                        metric_kwds = UMAP._metric_kwds,\
+                        output_metric = UMAP._output_distance_func,\
+                        output_metric_kwds = UMAP._output_metric_kwds,\
+                        euclidean_output = UMAP.output_metric in ("euclidean", "l2"),\
+                        parallel = UMAP.random_state is None,\
+                        verbose = UMAP.verbose
                     )
             #Print update
             print('Finished embedding')
 
             #Update the embedding dictionary
-            embed_dict.update({dim_range[dim-1]:embed_0.embedding_})
+            embed_dict.update({dim:alt_embed})
 
             #Compute the fuzzy set cross entropy
-            cs = fuzz.FuzzySetCrossEntropy(alt_embed, embed_0.graph_,embed_0.min_dist, n_jobs)
+            cs = fuzz.FuzzySetCrossEntropy(alt_embed, UMAP.graph_,UMAP.min_dist, n_jobs)
             #Update list for now
             ce_res.update({dim:cs})
 
@@ -259,31 +259,40 @@ class IntraModalityDataset:
         print('Optimal UMAP embedding dimension is '+ str(opt_dim))
 
         #Check to see if exporting plot
-        if export_plot:
+        if export_diagnostics:
+            #Ensure that an output directory is entered
+            if output_dir is None:
+                #Raise and error if no output
+                raise(ValueError('Please add an output directory -- none identified'))
+            #Create a path based on the output directory
+            else:
+                #Create image path
+                im_path = Path(os.path.join(output_dir,'OptimalUMAP.jpeg'))
+                #Create csv path
+                csv_path = Path(os.path.join(output_dir,'OptimalUMAP.csv'))
+
+            #Plot figure and save results
+            fig, axs = plt.subplots()
             #plot the fit value
-            plt.plot(px, nom, c='r',label="Fitted Curve",linewidth=3)
+            axs.plot(px, nom, c='r',label="Fitted Curve",linewidth=3)
             #add 2 sigma uncertainty lines
-            plt.plot(px, nom - 2 * std, c='c',label="95% CI",alpha=0.6,linewidth=3)
-            plt.plot(px, nom + 2 * std, c='c',alpha=0.6,linewidth=3)
+            axs.plot(px, nom - 2 * std, c='c',label="95% CI",alpha=0.6,linewidth=3)
+            axs.plot(px, nom + 2 * std, c='c',alpha=0.6,linewidth=3)
             #plot the observed values
-            plt.plot(xdata, met, 'ko', label="Observed Data",markersize=8)
-            #Pot legend
-            plt.legend()
-            #Save figure
-            plt.savefig('OptimalUMAP.jpeg',dpi=1200)
+            axs.plot(xdata, met, 'ko', label="Observed Data",markersize=8)
+            #Change axis names
+            axs.set_xlabel('Dimension')
+            axs.set_ylabel('Min-Max Scaled Cross-Entropy')
+            fig.suptitle('Optimal Dimension Estimation', fontsize=12)
+            axs.legend()
+            #plt.show()
+            plt.savefig(im_path,dpi=600)
 
+            #Export the metric values to csv
+            ce_res_norm.to_csv(csv_path)
 
-
-
-
-
-        ##################
-        #print updates
-        print('Running UMAP on concatenated '+str(self.modality)+' data...')
-        #Set up UMAP parameters
-        UMAP = umap.UMAP(**kwargs).fit(tmp_frame)
-        #print update
-        print('Finished UMAP')
+        #Use the optimal UMAP embedding to add to the class object
+        UMAP.embedding_ = embed_dict[opt_dim]
 
         #Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
@@ -301,8 +310,6 @@ class IntraModalityDataset:
 
         #Add the umap object to the class
         self.umap_object = UMAP
-        ###################
-
 
 
 
