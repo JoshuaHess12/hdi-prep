@@ -47,8 +47,7 @@ class IntraModalityDataset:
         self.modality = str(modality)
         self.umap_object = None
         self.umap_embeddings = {}
-        self.umap_multi_metric = {}
-        self.umap_multi_embeddings = {}
+        self.umap_optimal_dim = None
         self.processed_images_export = None
 
         #Iterate through the list of HDIimports and add them to the set dictionary
@@ -310,6 +309,9 @@ class IntraModalityDataset:
 
         #Add the umap object to the class
         self.umap_object = UMAP
+
+        #Update the optimal dimensionality
+        self.umap_optimal_dim = opt_dim
 
 
 
