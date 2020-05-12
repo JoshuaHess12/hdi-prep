@@ -36,7 +36,7 @@ ImportOptions:
 #-----Arguments for processing-----
 ProcessingSteps:
   - RunOptimalUMAP:
-  - etc,
+  - etc.
 ```
 *Note: lists are indicated in YAML files by the '-' character*
 
