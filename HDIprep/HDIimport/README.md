@@ -22,7 +22,7 @@ Class object for importing data is HDIreader inside of hdi_reader.py.
 
 *Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
-### Classes and function structure
+## Classes and function structure
 All class objects contain uppercase lettering, and exist inside of all lowercase .py files.
 
 ```bash

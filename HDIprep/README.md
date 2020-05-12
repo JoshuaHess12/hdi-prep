@@ -17,15 +17,18 @@ Module for high-dimensional image reading and preparation.
 7) Image exporting to nifti1 format for registration with Elastix
 
 ## Implementation details
-All image processing can be run using the function 'RunHDIprepYAML' in yaml_hdi_prep.py. This can be run from the command line, or the function can be called in python.
+All image processing can be run using YAML files in conjunction with the function 'RunHDIprepYAML' in yaml_hdi_prep.py. YAML file inputs can be run from the command line, or the function can be called in python.
 
-**Command line usage -- recommended**:
+#### YAML input:
+- Input options here
+
+#### Command line usage -- recommended:
 All image processing and exporting can be run from the command line by calling python, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps:
 ```bash
 python command_hdi_prep.py --path_to_yaml /path/to/example.yaml
 ```
-**YAML input options**:
 
 
-### Classes and function structure
+
+## Classes and function structure
 
