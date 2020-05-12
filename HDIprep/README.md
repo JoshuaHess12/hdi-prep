@@ -7,10 +7,10 @@ Module for high-dimensional image reading and preparation.
 - h(df)5
 - nifti1
 
-**Modules included**:
+**Processing steps included**:
 1) Image reading with file type(s) listed above
 2) Image masking
-3) Image subsampling
+3) Image subsampling (applicable to dimension reduction)
 4) Dimension reduction using UMAP -- optimal dimension embedding selection
 5) Image filtering -- median filtering to remove salt and pepper noise
 6) Binary operations (opening, closing, etc.)
@@ -20,7 +20,35 @@ Module for high-dimensional image reading and preparation.
 All image processing can be run using YAML files in conjunction with the function 'RunHDIprepYAML' in yaml_hdi_prep.py. YAML file inputs can be run from the command line, or the function can be called in python.
 
 #### YAML input:
-- Input options here
+Options/ordered steps for image processing can all be contained in YAML file format. Two main input options need to be included in the YAML file:
+1) ImportOptions and
+2) ProcessingSteps
+
+These two steps are main headers in the YAML format as follows:
+```bash
+#-----arguments for importing-----
+ImportOptions:
+  #Insert import options
+  list_of_paths:
+    - "path/to/image"
+    - "path/to/image(s)"
+  etc.
+
+#-----Arguments for processing-----
+ProcessingSteps:
+
+  - RunOptimalUMAP:
+      n_neighbors: 15
+      n_jobs: 1
+      dim_range: (1,10)
+      etc.
+
+  - SpatiallyMapUMAP
+
+  - ExportNifti1:
+      output_dir: "path/to/export"
+      etc.
+```
 
 #### Command line usage -- recommended:
 All image processing and exporting can be run from the command line by calling python, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps:
