@@ -28,7 +28,6 @@ import morphology
 import utils
 
 
-
 #Create a class for storing multiple datasets for a single modality
 class IntraModalityDataset:
     """Merge HDIimport classes storing imaging datasets

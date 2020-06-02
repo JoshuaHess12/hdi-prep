@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 #Define function
-def CreateHyperspectralImage(embedding,array_size,coordinates):
+def CreateHyperspectralImage(embedding,array_size,coordinates,scale=True):
     """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
     imaging data by rescaling each channel from 0-1
 
@@ -41,10 +41,12 @@ def CreateHyperspectralImage(embedding,array_size,coordinates):
         #Add boolean mask
         im_bool[y - 1, x - 1] = True
 
-    #Scale the data 0-1 for hyperspectral image construction
-    for dim in range(im.shape[2]):
-        #min-max scaler
-        im[:,:,dim]=(im[:,:,dim]-im[:,:,dim].min())/(im[:,:,dim].max()-im[:,:,dim].min())
+    #Check to see if scaling the pixel values 0 to 1
+    if scale:
+        #Scale the data 0-1 for hyperspectral image construction
+        for dim in range(im.shape[2]):
+            #min-max scaler
+            im[:,:,dim]=(im[:,:,dim]-im[:,:,dim].min())/(im[:,:,dim].max()-im[:,:,dim].min())
 
     #Mask the image with the boolean array to remove unused pixels
     im[~im_bool] = 0
