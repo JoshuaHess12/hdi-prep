@@ -76,14 +76,27 @@ def SubsetCoordinates(coords,array_size,method="random",n=10000,grid_spacing=(2,
 
         #Check to see if the method is uniform sampling with random after
         elif method == "pseudo_random":
-            #Check to see if the value is less than or equal to 0.25 for now
-            if n < 0.25:
-                #Raise and error
-                raise(Exception("Psuedo-random sampling is currently only supported with > 25% sampling. Enter value > 0.25"))
+            #Check to see if the value is less than or equal to 1
+            #if n < 1:
+                #Interpret this value as a percentage
+                #num_resamples = int(len(coords) * n)
 
-            #intialize the sampling with 2x2 grid
-            grdh = 2
-            grdw = 2
+            if n >= 0.25:
+                #intialize the sampling with 2x2 grid
+                grdh = 2
+                grdw = 2
+            elif 0.25 > n >= 0.11:
+                #intialize the sampling with 3x3 grid
+                grdh = 3
+                grdw = 3
+            elif 0.11 > n >= 0.0625:
+                #intialize the sampling with 4x4 grid
+                grdh = 4
+                grdw = 4
+            else:
+                #intialize the sampling with 5x5 grid
+                grdh = 5
+                grdw = 5
             #Get maximum indices for x and y directions
             max_nh, max_nw = (max(coords,key=itemgetter(1))[1], max(coords,key=itemgetter(0))[0])
             #Get maximum indices for x and y directions
