@@ -11,7 +11,7 @@ import intramodality_dataset
 
 
 #Define parsing function
-def RunHDIprepYAML(path_to_yaml):
+def RunHDIprepYAML(path_to_yaml,out_dir):
     """Parsing YAML file to feed into creation of intramodality dataset. Subsequent
     processing of files based on input parameters
 
@@ -27,6 +27,7 @@ def RunHDIprepYAML(path_to_yaml):
         try:
             #Load the yaml file
             yml = yaml.full_load(stream)
+            print(yml)
         #Throw exception if it fails
         except yaml.YAMLError as exc:
             #Print error
@@ -44,6 +45,8 @@ def RunHDIprepYAML(path_to_yaml):
 
         #Check to see if running optimal umap with different parameters
         if step == 'RunOptimalUMAP':
+            #Add the output directory to the dictionary
+            yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
             #Check to see if custom input
             if not 'custom_input' in yml["ProcessingSteps"][s][step]:
                 #break the loop and proceed with processing
@@ -111,6 +114,10 @@ def RunHDIprepYAML(path_to_yaml):
         elif isinstance(step, dict):
             #Get the key value
             step = list(yml["ProcessingSteps"][s].keys())[0]
+            #If this is a dictionary and is export nifti, add output dir
+            if step == 'ExportNifti1':
+                #Add output
+                yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
             #Apply the processing step
             getattr(intramod_set, step)(**yml["ProcessingSteps"][s][step])
 

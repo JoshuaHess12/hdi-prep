@@ -46,7 +46,7 @@ class NIFTI1reader:
 
                 #####Currently transpose the image as default####
                 #Add the image from nibabel to the image object (memmap object)
-                self.data.image = self.data.get_data().T
+                self.data.image = self.data.get_data().transpose(1,0,2)
                 print("Finished parsing nifti")
             else:
                 print("Not a valid file extension")

@@ -639,7 +639,7 @@ class IntraModalityDataset:
         #Iterate through the set dictionary
         for f, hdi_imp in self.set_dict.items():
             #Create an image name -- remove .ome in the name if it exists and add umap suffix
-            im_name = Path(os.path.join(output_dir,f.stem.replace(".ome.","")+"_"+str(self.modality)+"_processed.nii"))
+            im_name = Path(os.path.join(str(output_dir),f.stem.replace(".ome.","")+"_"+str(self.modality)+"_processed.nii"))
 
             #Ensure that the mask is not none
             if hdi_imp.hdi.data.processed_image is None:
