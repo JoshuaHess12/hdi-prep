@@ -8,6 +8,8 @@ import os
 import nibabel as nib
 import numpy as np
 import pandas as pd
+import skimage
+import scipy
 
 #Import custom modules
 from .utils import ReadMarkers, FlattenZstack
