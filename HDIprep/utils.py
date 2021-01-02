@@ -76,7 +76,13 @@ def ExportNifti(image,filename,padding=None):
     if padding is not None:
         image = np.pad(image, [(padding[0],padding[0]),(padding[1],padding[1]),(0,0)], mode = 'constant')
     #Create nifti object -- transpose axes because of the transformation!
-    nifti_im = nib.Nifti1Image(image.transpose(1,0,2), affine=np.eye(4))
+    #Check size
+    if len(image.shape) > 2:
+        #Create nifti object -- transpose axes because of the transformation!
+        nifti_im = nib.Nifti1Image(image.transpose(1,0,2), affine=np.eye(4))
+    else:
+        #Create nifti object -- transpose axes because of the transformation!
+        nifti_im = nib.Nifti1Image(image.T, affine=np.eye(4))
     #Save the image
     nib.save(nifti_im, str(filename))
     #Print update

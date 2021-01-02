@@ -10,6 +10,7 @@ from pyimzml.ImzMLParser import ImzMLParser
 import numpy as np
 import pandas as pd
 from operator import itemgetter
+import scipy
 
 #Import custom modules
 from .utils import SubsetCoordinates

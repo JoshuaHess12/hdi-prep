@@ -106,7 +106,7 @@ class CYTreader:
             pix, coords = FlattenZstack(z_stack=self.data.image, z_stack_shape=self.data.image_shape,\
                 mask=self.data.mask, subsample=subsample, **kwargs)
             #Add the pixel table to our object
-            self.data.pixel_table = pd.DataFrame(pix,columns = channels, index = pix.index)
+            self.data.pixel_table = pd.DataFrame(pix.values,columns = channels, index = pix.index)
             #Clear the pixel table object to save memory
             pix = None
             #Check to see if we subsampled
