@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from operator import itemgetter
 import scipy
+import skimage
+import skimage.io
 
 #Import custom modules
 from .utils import SubsetCoordinates
