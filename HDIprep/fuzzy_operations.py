@@ -1,8 +1,8 @@
-#Computing fuzzy set umap cross entropy
-#Developer: Joshua M. Hess, BSc
-#Developed at the Vaccine & Immunotherapy Center, Mass. General Hospital
+# Computing fuzzy set umap cross entropy
+# Developer: Joshua M. Hess, BSc
+# Developed at the Vaccine & Immunotherapy Center, Mass. General Hospital
 
-#Import external moduless
+# Import external moduless
 import numpy as np
 import pandas as pd
 import umap
@@ -10,27 +10,25 @@ import scipy.sparse
 from sklearn.metrics import pairwise_distances
 
 
-
-#Define functions
+# Define functions
 def RemoveDuplicates(object):
     """Function for removing duplicates from a symmetric matrix. Input can be
     either a symmetric numpy array or a csr matrix (use for ouput from umap)"""
 
     if type(object) is scipy.sparse.csr.csr_matrix:
-        #Convert to numpy array
+        # Convert to numpy array
         object = object.toarray()
-    #Add na values to the upper triangle
+    # Add na values to the upper triangle
     object[np.triu_indices_from(object, k=1)] = np.nan
-    #Convert to pandas dataframe
+    # Convert to pandas dataframe
     object = pd.DataFrame(object).unstack().dropna()
-    object = np.array(list(object)).reshape((len(object),1))
+    object = np.array(list(object)).reshape((len(object), 1))
 
-    #Return object
+    # Return object
     return object
 
 
-
-def CrossEntropy(dists,weights,min_dist,max=10):
+def CrossEntropy(dists, weights, min_dist, max=10):
     """
     Function obtained from UMAP matlab written by Stephen Meehan
 
@@ -74,44 +72,47 @@ def CrossEntropy(dists,weights,min_dist,max=10):
        License: BSD 3 clause
     """
 
-    #if nargin < 4
+    # if nargin < 4
     #    max = 10;
-    #end
-    #Psi = (dists < min_dist) + ~(dists < min_dist).*exp(-(dists - min_dist));
-    #w1 = weights == 1;
-    #w0 = weights == 0;
-    #other = ~w0 & ~w1;
-    #Psi_summands = zeros(size(weights));
-    #Psi_summands(w1) = log(Psi(w1));
-    #Psi_summands(w0) = log(1-Psi(w0));
-    #Psi_summands(other) = weights(other).*log(Psi(other)) + (1-weights(other)).*log(1-Psi(other));
-    #Psi_summands(isinf(Psi_summands)) = -max;
-    #result = -sum(Psi_summands);
-    #end
+    # end
+    # Psi = (dists < min_dist) + ~(dists < min_dist).*exp(-(dists - min_dist));
+    # w1 = weights == 1;
+    # w0 = weights == 0;
+    # other = ~w0 & ~w1;
+    # Psi_summands = zeros(size(weights));
+    # Psi_summands(w1) = log(Psi(w1));
+    # Psi_summands(w0) = log(1-Psi(w0));
+    # Psi_summands(other) = weights(other).*log(Psi(other)) + (1-weights(other)).*log(1-Psi(other));
+    # Psi_summands(isinf(Psi_summands)) = -max;
+    # result = -sum(Psi_summands);
+    # end
 
-    #Run the program with python equivalent
-    #dists = np.array([1,0,3,5,1],dtype = np.float32)
-    #dists = dists.reshape((5,1))
-    #weights = np.array([0.1,0.2,0.3,1,0],dtype=np.float32)
-    #weights = weights.reshape((5,1))
-    #min_dist = 2
-    Psi = (dists < min_dist) + np.multiply(~(dists < min_dist),(np.exp(-(dists - min_dist))))
+    # Run the program with python equivalent
+    # dists = np.array([1,0,3,5,1],dtype = np.float32)
+    # dists = dists.reshape((5,1))
+    # weights = np.array([0.1,0.2,0.3,1,0],dtype=np.float32)
+    # weights = weights.reshape((5,1))
+    # min_dist = 2
+    Psi = (dists < min_dist) + np.multiply(
+        ~(dists < min_dist), (np.exp(-(dists - min_dist)))
+    )
     w1 = weights == 1
     w0 = weights == 0
     other = ~w0 & ~w1
-    Psi_summands = np.zeros(weights.shape,dtype=np.float32)
+    Psi_summands = np.zeros(weights.shape, dtype=np.float32)
     Psi_summands[w1] = np.log(Psi[w1])
-    Psi_summands[w0] = np.log(1-Psi[w0])
-    Psi_summands[other] = np.multiply(weights[other],np.log(Psi[other])) + np.multiply((1-weights[other]),np.log(1-Psi[other]))
+    Psi_summands[w0] = np.log(1 - Psi[w0])
+    Psi_summands[other] = np.multiply(weights[other], np.log(Psi[other])) + np.multiply(
+        (1 - weights[other]), np.log(1 - Psi[other])
+    )
     Psi_summands[np.isinf(Psi_summands)] = -max
     result = -sum(Psi_summands)
 
-    #Return the result
+    # Return the result
     return result
 
 
-
-def FuzzySetCrossEntropy(embedding,weights,min_dist,n_jobs):
+def FuzzySetCrossEntropy(embedding, weights, min_dist, n_jobs):
     """Function for calculating the fuzzy set cross entropy to judge the performance
     of UMAP for embedding data
 
@@ -120,14 +121,14 @@ def FuzzySetCrossEntropy(embedding,weights,min_dist,n_jobs):
     min_dist: min_dist parameter from umap object
     """
 
-    #Calculate pairwise distance matrix from the embedding
-    dists = pairwise_distances(embedding,n_jobs = n_jobs)
+    # Calculate pairwise distance matrix from the embedding
+    dists = pairwise_distances(embedding, n_jobs=n_jobs)
 
-    #First remove the duplicate values from each pairwise matrix
+    # First remove the duplicate values from each pairwise matrix
     dists = RemoveDuplicates(dists)
     weights = RemoveDuplicates(weights)
-    #Calculate exact cross entropy using the converted matlab function
-    result = CrossEntropy(dists,weights,min_dist,max=10)
+    # Calculate exact cross entropy using the converted matlab function
+    result = CrossEntropy(dists, weights, min_dist, max=10)
 
-    #Return the value -- index 0 because it is an array -- return a single float
+    # Return the value -- index 0 because it is an array -- return a single float
     return result[0]
