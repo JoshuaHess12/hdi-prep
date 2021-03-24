@@ -34,70 +34,70 @@ def RunHDIprepYAML(path_to_yaml, out_dir):
             print(exc)
 
     # Iterate through each step to check for Running UMAP optimal dimension
-    #for s in range(len(yml["ProcessingSteps"])):
+    # for s in range(len(yml["ProcessingSteps"])):
 
-        # Get the step -- either a string (if no extra input arguments, or a dictionary with key and value)
-        #step = yml["ProcessingSteps"][s]
-        # Check if the step has input arguments
-        #if isinstance(step, dict):
-            # Get the key value
-        #    step = list(yml["ProcessingSteps"][s].keys())[0]
+    # Get the step -- either a string (if no extra input arguments, or a dictionary with key and value)
+    # step = yml["ProcessingSteps"][s]
+    # Check if the step has input arguments
+    # if isinstance(step, dict):
+    # Get the key value
+    #    step = list(yml["ProcessingSteps"][s].keys())[0]
 
-        # Check to see if running optimal umap with different parameters
-        #if step == "RunOptimalUMAP":
-            # Add the output directory to the dictionary
-            #yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
-            # Check to see if custom input
-            #if not "custom_input" in yml["ProcessingSteps"][s][step]:
-                # break the loop and proceed with processing
-            #    break
+    # Check to see if running optimal umap with different parameters
+    # if step == "RunOptimalUMAP":
+    # Add the output directory to the dictionary
+    # yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
+    # Check to see if custom input
+    # if not "custom_input" in yml["ProcessingSteps"][s][step]:
+    # break the loop and proceed with processing
+    #    break
 
-            # Otherwise continue
-            #else:
-                # create a copy of the input arguments for creating dataset
-                #opt_data = yml["ImportOptions"].copy()
-                # Iterate through each of the import options and see if changed
-                #for k in opt_data.keys():
-                    # Check to see if the corresponding key exists in the optimal UMAP options
-                #    if k in yml["ProcessingSteps"][s][step]:
-                        # Update the dictionary
-                #        opt_data[k] = yml["ProcessingSteps"][s][step][k]
+    # Otherwise continue
+    # else:
+    # create a copy of the input arguments for creating dataset
+    # opt_data = yml["ImportOptions"].copy()
+    # Iterate through each of the import options and see if changed
+    # for k in opt_data.keys():
+    # Check to see if the corresponding key exists in the optimal UMAP options
+    #    if k in yml["ProcessingSteps"][s][step]:
+    # Update the dictionary
+    #        opt_data[k] = yml["ProcessingSteps"][s][step][k]
 
-                # Use the import options in the yml object to import all datasets
-                #opt_set = intramodality_dataset.CreateDataset(**opt_data)
+    # Use the import options in the yml object to import all datasets
+    # opt_set = intramodality_dataset.CreateDataset(**opt_data)
 
-                # Get common keys between import options and run optimal umap
-                # common = list(
-                #    set(opt_data.keys()) & set(yml["ProcessingSteps"][s][step].keys())
-                #)
-                # Add the custom input option to the common keys to remove
-                #common = common + ["custom_input"]
+    # Get common keys between import options and run optimal umap
+    # common = list(
+    #    set(opt_data.keys()) & set(yml["ProcessingSteps"][s][step].keys())
+    # )
+    # Add the custom input option to the common keys to remove
+    # common = common + ["custom_input"]
 
-                # Remove the common keys from the processing option of optimal umap
-                #for i in common:
-                    # Update the dictionary
-                #    yml["ProcessingSteps"][s][step].pop(i, None)
+    # Remove the common keys from the processing option of optimal umap
+    # for i in common:
+    # Update the dictionary
+    #    yml["ProcessingSteps"][s][step].pop(i, None)
 
-                # Apply the processing step -- Run the optimal umap embedding processing step
-                # getattr(opt_set, step)(**yml["ProcessingSteps"][s][step])
+    # Apply the processing step -- Run the optimal umap embedding processing step
+    # getattr(opt_set, step)(**yml["ProcessingSteps"][s][step])
 
-                # Get the optimal dimension number
-                # opt_dim = opt_set.umap_optimal_dim
+    # Get the optimal dimension number
+    # opt_dim = opt_set.umap_optimal_dim
 
-                # Remove the opt_set for memory clear
-                # opt_set = None
+    # Remove the opt_set for memory clear
+    # opt_set = None
 
-                # Copy input options for optimal umap embedding and run umap with desired number
-                # umap_args = yml["ProcessingSteps"][s][step].copy()
-                # Iterate through options and remove given parameters
-                # for i in ["dim_range", "export_diagnostics", "output_dir", "n_jobs"]:
-                    # Update the dictionary
-                #    umap_args.pop(i, None)
-                # Add parameters for n_components
-                # umap_args.update({"n_components": opt_dim})
+    # Copy input options for optimal umap embedding and run umap with desired number
+    # umap_args = yml["ProcessingSteps"][s][step].copy()
+    # Iterate through options and remove given parameters
+    # for i in ["dim_range", "export_diagnostics", "output_dir", "n_jobs"]:
+    # Update the dictionary
+    #    umap_args.pop(i, None)
+    # Add parameters for n_components
+    # umap_args.update({"n_components": opt_dim})
 
-                # Replace the Runoptimal umap option with RunUMAP for the next step
-                # yml["ProcessingSteps"][s] = {"RunUMAP": umap_args}
+    # Replace the Runoptimal umap option with RunUMAP for the next step
+    # yml["ProcessingSteps"][s] = {"RunUMAP": umap_args}
 
     # Use the import options in the yml object to import all datasets
     intramod_set = intramodality_dataset.CreateDataset(**yml["ImportOptions"])

@@ -29,8 +29,6 @@ import morphology
 import utils
 
 
-
-
 def find_ab_params(spread, min_dist):
     """Fit a, b params for the differentiable curve used in lower
     dimensional fuzzy simplicial complex construction. We want the
@@ -111,26 +109,41 @@ class IntraModalityDataset:
             # hdi_imp.hdi.data.pixel_table = None
 
         # Set up UMAP parameters
-        base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+        base = umap.UMAP(transform_mode="graph", **kwargs).fit(tmp_frame)
 
         # Check for landmark subsampling
         if self.landmarks is not None:
-                # Print update
-                print("Computing "+str(landmarks)+" spectral landmarks...")
-                # Calculate singular value decomposition
-                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
+            # Print update
+            print("Computing " + str(landmarks) + " spectral landmarks...")
+            # Calculate singular value decomposition
+            a, b, VT = extmath.randomized_svd(
+                base.graph_, n_components=100, random_state=0
+            )
 
-                # Calculate spectral clustering
-                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
-                #Get kmeans labels using the singular value decomposition and minibatch k means
-                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
-                # Get  mean values from clustering to define spectral centroids
-                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
-                # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
+            # Calculate spectral clustering
+            kmeans = MiniBatchKMeans(
+                self.landmarks,
+                init_size=3 * self.landmarks,
+                batch_size=10000,
+                random_state=0,
+            )
+            # Get kmeans labels using the singular value decomposition and minibatch k means
+            kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
+            # Get  mean values from clustering to define spectral centroids
+            means = pd.concat(
+                [
+                    tmp_frame,
+                    pd.DataFrame(
+                        kmean_lab, columns=["ClusterID"], index=tmp_frame.index
+                    ),
+                ],
+                axis=1,
+            )
+            # Get mean values from dataframe
+            tmp_frame = means.groupby("ClusterID").mean().values
 
-                # Create simplicial set from centroided data
-                base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+            # Create simplicial set from centroided data
+            base = umap.UMAP(transform_mode="graph", **kwargs).fit(tmp_frame)
 
         # Handle all the optional plotting arguments, setting default
         if base.a is None or base.b is None:
@@ -151,7 +164,7 @@ class IntraModalityDataset:
         # Print update for this dimension
         print("Embedding in dimension " + str(base.n_components))
         # Use previous simplicial set and embedding components to embed in higher dimension
-        alt_embed,_ = umap.umap_.simplicial_set_embedding(
+        alt_embed, _ = umap.umap_.simplicial_set_embedding(
             data=base._raw_data,
             graph=base.graph_,
             n_components=base.n_components,
@@ -204,7 +217,9 @@ class IntraModalityDataset:
                     )
                     # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
                     self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                        sorted(
+                            list(self.umap_embeddings[f].index), key=itemgetter(1, 0)
+                        )
                     )
             # Otherwise use the spectral landmark embedding
             else:
@@ -216,9 +231,14 @@ class IntraModalityDataset:
         # Add the umap object to the class
         self.umap_object = base
 
-
     def RunOptimalUMAP(
-        self, dim_range, landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
+        self,
+        dim_range,
+        landmarks=3000,
+        export_diagnostics=False,
+        output_dir=None,
+        n_jobs=1,
+        **kwargs
     ):
         """Run UMAP over a range of dimensions to choose optimal embedding by empirical
         observation of fuzzy set cross entropy.
@@ -268,26 +288,41 @@ class IntraModalityDataset:
         dim_range = range(dim_range[0], dim_range[1])
 
         # Run UMAP on the first iteration -- we will skip simplicial set construction in next iterations
-        base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+        base = umap.UMAP(transform_mode="graph", **kwargs).fit(tmp_frame)
 
         # Check for landmark subsampling
         if self.landmarks is not None:
-                # Print update
-                print("Computing "+str(landmarks)+" spectral landmarks...")
-                # Calculate singular value decomposition
-                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
+            # Print update
+            print("Computing " + str(landmarks) + " spectral landmarks...")
+            # Calculate singular value decomposition
+            a, b, VT = extmath.randomized_svd(
+                base.graph_, n_components=100, random_state=0
+            )
 
-                # Calculate spectral clustering
-                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
-                #Get kmeans labels using the singular value decomposition and minibatch k means
-                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
-                # Get  mean values from clustering to define spectral centroids
-                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
-                # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
+            # Calculate spectral clustering
+            kmeans = MiniBatchKMeans(
+                self.landmarks,
+                init_size=3 * self.landmarks,
+                batch_size=10000,
+                random_state=0,
+            )
+            # Get kmeans labels using the singular value decomposition and minibatch k means
+            kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
+            # Get  mean values from clustering to define spectral centroids
+            means = pd.concat(
+                [
+                    tmp_frame,
+                    pd.DataFrame(
+                        kmean_lab, columns=["ClusterID"], index=tmp_frame.index
+                    ),
+                ],
+                axis=1,
+            )
+            # Get mean values from dataframe
+            tmp_frame = means.groupby("ClusterID").mean().values
 
-                # Create simplicial set from centroided data
-                base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+            # Create simplicial set from centroided data
+            base = umap.UMAP(transform_mode="graph", **kwargs).fit(tmp_frame)
 
         # Handle all the optional plotting arguments, setting default
         if base.a is None or base.b is None:
@@ -311,7 +346,7 @@ class IntraModalityDataset:
             # Print update for this dimension
             print("Embedding in dimension " + str(dim))
             # Use previous simplicial set and embedding components to embed in higher dimension
-            alt_embed,_ = umap.umap_.simplicial_set_embedding(
+            alt_embed, _ = umap.umap_.simplicial_set_embedding(
                 data=base._raw_data,
                 graph=base.graph_,
                 n_components=dim,
@@ -460,7 +495,9 @@ class IntraModalityDataset:
                     )
                     # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
                     self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                        sorted(
+                            list(self.umap_embeddings[f].index), key=itemgetter(1, 0)
+                        )
                     )
             # Otherwise use the spectral landmark embedding
             else:
@@ -503,14 +540,16 @@ class IntraModalityDataset:
                     mask=None,
                 )
                 # print update
-                print("Transforming pixels into UMAP embedding of spectral centroids...")
+                print(
+                    "Transforming pixels into UMAP embedding of spectral centroids..."
+                )
                 # Run the new pixel table through umap transformer
                 embedding_projection = self.umap_object.transform(
                     new_data.hdi.data.pixel_table
                 )
                 # Add the projection to dataframe and coerce with existing embedding
                 embedding_projection = pd.DataFrame(
-                embedding_projection,
+                    embedding_projection,
                     index=list(new_data.hdi.data.pixel_table.index),
                 )
 
@@ -566,7 +605,9 @@ class IntraModalityDataset:
                 sub_mask = None
 
                 # print update
-                print("Transforming pixels into existing UMAP embedding of subsampled pixels...")
+                print(
+                    "Transforming pixels into existing UMAP embedding of subsampled pixels..."
+                )
                 # Run the new pixel table through umap transformer
                 embedding_projection = self.umap_object.transform(
                     new_data.hdi.data.pixel_table
