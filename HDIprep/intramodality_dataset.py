@@ -216,6 +216,105 @@ class IntraModalityDataset:
         # Add the umap object to the class
         self.umap_object = base
 
+    # Create dimension reduction method with UMAP
+    def RunParametricUMAP(self, landmarks=3000, **kwargs):
+        """Creates an embedding of high-dimensional imaging data. Each
+        pixel will be represented by its coordinates scaled from 0-1 after
+        hyperspectral image construction.
+
+        Returned will be a numpy array containing pixels and their
+        embedded coordinates.
+        """
+        # check for landmarks
+        self.landmarks = landmarks
+
+        # Create a dictionary to store indices in
+        file_idx = {}
+        # Create a counter
+        idx = 0
+        # Create a list to store data tables in
+        pixel_list = []
+        # Create a blank frame
+        tmp_frame = pd.DataFrame()
+
+        # Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            # Get the number of rows in the spectrum table
+            nrows = hdi_imp.hdi.data.pixel_table.shape[0]
+            # update the list of concatenation indices with filename
+            file_idx.update({f: (idx, idx + nrows)})
+            # Update the index
+            idx = idx + nrows
+
+            # Get the spectrum
+            tmp_frame = pd.concat([tmp_frame, hdi_imp.hdi.data.pixel_table])
+            # Clear the old pixel table from memory
+            # hdi_imp.hdi.data.pixel_table = None
+
+        # Check for landmark subsampling
+        if self.landmarks is not None:
+                # Set up UMAP parameters
+                base = umap.parametric_umap.ParametricUMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+                # Print update
+                print("Computing "+str(landmarks)+" spectral landmarks...")
+                # Calculate singular value decomposition
+                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
+
+                # Calculate spectral clustering
+                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
+                #Get kmeans labels using the singular value decomposition and minibatch k means
+                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
+                # Get  mean values from clustering to define spectral centroids
+                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
+                # Get mean values from dataframe
+                tmp_frame = means.groupby("ClusterID").mean().values
+
+                # Print update for this dimension
+                print("Embedding in dimension " + str(base.n_components))
+                # Set up UMAP parameters
+                base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",**kwargs).fit(tmp_frame)
+        else:
+            # run parametric umap with no spectral landmark selection
+            base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",**kwargs).fit(tmp_frame)
+
+        # Unravel the UMAP embedding for each sample
+        for f, tup in file_idx.items():
+
+            # Check for landmark sampling
+            if self.landmarks is None:
+                # Check to see if file has subsampling
+                if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                    self.umap_embeddings.update(
+                        {
+                            f: pd.DataFrame(
+                                base.embedding_[tup[0] : tup[1], :],
+                                index=self.set_dict[f].hdi.data.sub_coordinates,
+                            )
+                        }
+                    )
+                else:
+                    # Otherwise use the full coordinates list
+                    self.umap_embeddings.update(
+                        {
+                            f: pd.DataFrame(
+                                base.embedding_[tup[0] : tup[1], :],
+                                index=self.set_dict[f].hdi.data.coordinates,
+                            )
+                        }
+                    )
+                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                    )
+            # Otherwise use the spectral landmark embedding
+            else:
+                # Update the single UMAP object blank
+                self.umap_embeddings[f] = 0
+
+        # Add the umap object to the class
+        self.umap_object = base
+
 
     def RunOptimalUMAP(
         self, dim_range, landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
@@ -432,6 +531,221 @@ class IntraModalityDataset:
         base.embedding_ = embed_dict[opt_dim]
         # Update the transform mode
         base.transform_mode = "embedding"
+
+        # Unravel the UMAP embedding for each sample
+        for f, tup in file_idx.items():
+            # Check for landmark sampling
+            if landmarks is None:
+                # Check to see if file has subsampling
+                if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                    self.umap_embeddings.update(
+                        {
+                            f: pd.DataFrame(
+                                base.embedding_[tup[0] : tup[1], :],
+                                index=self.set_dict[f].hdi.data.sub_coordinates,
+                            )
+                        }
+                    )
+                else:
+                    # Otherwise use the full coordinates list
+                    self.umap_embeddings.update(
+                        {
+                            f: pd.DataFrame(
+                                base.embedding_[tup[0] : tup[1], :],
+                                index=self.set_dict[f].hdi.data.coordinates,
+                            )
+                        }
+                    )
+                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                    )
+            # Otherwise use the spectral landmark embedding
+            else:
+                # Update the single UMAP object blank
+                self.umap_embeddings[f] = 0
+
+        # Add the umap object to the class
+        self.umap_object = base
+
+        # Update the optimal dimensionality
+        self.umap_optimal_dim = opt_dim
+
+    def RunOptimalParametricUMAP(
+        self, dim_range, landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
+    ):
+        """Run UMAP over a range of dimensions to choose optimal embedding by empirical
+        observation of fuzzy set cross entropy.
+        ***Note that current implementation will recompute fuzzy simplicial set  every iteration of embedding.
+        This will most likely not cause too large of performance decrease when using spectral landmarks. Can
+        be intense without landmarks however, and we do not recommend.
+
+        dim_range: tuple indicating a range of embedding dimensions (Ex: (1,11) is 1-10 -- python range)
+        normalized_cutoff: error delta to stop embedding -- not always going to converge, so all embedding
+        dimensions will be tested. If cutoff is not reached, a warning will appear, and the lowest delta
+        will be used
+        **kwargs: extra parameters to pass to UMAP (Ex: n_neighbors = 15, random_state = 223)
+        """
+        # check for landmarks
+        self.landmarks = landmarks
+
+        # Create a dictionary to store indices in
+        file_idx = {}
+        # Create a counter
+        idx = 0
+        # Create a list to store data tables in
+        pixel_list = []
+        # Create a blank frame
+        tmp_frame = pd.DataFrame()
+
+        # Iterate through the set dictionary
+        for f, hdi_imp in self.set_dict.items():
+            # Get the number of rows in the spectrum table
+            nrows = hdi_imp.hdi.data.pixel_table.shape[0]
+            # update the list of concatenation indices with filename
+            file_idx.update({f: (idx, idx + nrows)})
+            # Update the index
+            idx = idx + nrows
+
+            # Get the spectrum
+            tmp_frame = pd.concat([tmp_frame, hdi_imp.hdi.data.pixel_table])
+            # Clear the old pixel table from memory
+            # hdi_imp.hdi.data.pixel_table = None
+
+        # Create list to store the results in
+        ce_res = {}
+        # Create a dictionary to store the neural network models in
+        model_dict = {}
+
+        # Check to see if the dim_range is a string
+        if isinstance(dim_range, str):
+            dim_range = literal_eval(dim_range)
+
+        # Set up the dimension range for UMAP
+        dim_range = range(dim_range[0], dim_range[1])
+
+        # Check for landmark subsampling
+        if self.landmarks is not None:
+                # Run UMAP on the first iteration -- we will skip simplicial set construction in next iterations
+                base = umap.parametric_umap.ParametricUMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+                # Print update
+                print("Computing "+str(landmarks)+" spectral landmarks...")
+                # Calculate singular value decomposition
+                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
+
+                # Calculate spectral clustering
+                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
+                #Get kmeans labels using the singular value decomposition and minibatch k means
+                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
+                # Get  mean values from clustering to define spectral centroids
+                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
+                # Get mean values from dataframe
+                tmp_frame = means.groupby("ClusterID").mean().values
+
+        # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+        for dim in range(dim_range[0], dim_range[-1] + 1):
+
+            # Print update for this dimension
+            print("Embedding in dimension " + str(dim))
+            # Use previous simplicial set and embedding components to embed in higher dimension
+            model = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=dim,**kwargs).fit(tmp_frame)
+            # Print update
+            print("Finished embedding")
+
+            # Update the embedding dictionary
+            model_dict.update({dim: model})
+
+            # Compute the fuzzy set cross entropy
+            cs = fuzz.FuzzySetCrossEntropy(
+                model.embedding_, model.graph_, base.min_dist, n_jobs
+            )
+            # Update list for now
+            ce_res.update({dim: cs})
+
+        # Construct a dataframe from the dictionary of results
+        ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
+
+        # Print update
+        print("Finding optimal embedding dimension through exponential fit...")
+        # Calculate the min-max normalized cross-entropy
+        ce_res_norm = MinMaxScaler().fit_transform(ce_res)
+        # Convert back to pandas dataframe
+        ce_res_norm = pd.DataFrame(
+            ce_res_norm, columns=["Scaled Cross-Entropy"], index=[x for x in dim_range]
+        )
+
+        # Get the metric values
+        met = ce_res_norm["Scaled Cross-Entropy"].values
+        # Get the x axis information
+        xdata = np.int64(ce_res_norm.index.values)
+        # Fit the data using exponential function
+        popt, pcov = curve_fit(utils.Exp, xdata, met, p0=(0, 0.01, 1))
+
+        # create parameters from scipy fit
+        a, b, c = unc.correlated_values(popt, pcov)
+
+        # Create a tuple indicating the 95% interval containing the asymptote in c
+        asympt = (c.n - c.s, c.n + c.s)
+
+        # create equally spaced samples between range of dimensions
+        px = np.linspace(dim_range[0], dim_range[-1] + 1, 100000)
+
+        # use unumpy.exp to create samples
+        py = a * unp.exp(-b * px) + c
+        # extract expected values
+        nom = unp.nominal_values(py)
+        # extract stds
+        std = unp.std_devs(py)
+
+        # Iterate through samples to find the instance that value falls in 95% c value
+        for val in range(len(py)):
+            # Extract the nominal value
+            tmp_nom = py[val].n
+            # check if nominal value falls within 95% CI for asymptote
+            if asympt[0] <= tmp_nom <= asympt[1]:
+                # break the loop
+                break
+        # Extract the nominal value at this index -- round up (any float value lower is not observed -- dimensions are int)
+        opt_dim = int(np.ceil(px[val]))
+        # Print update
+        print("Optimal UMAP embedding dimension is " + str(opt_dim))
+
+        # Check to see if exporting plot
+        if export_diagnostics:
+            # Ensure that an output directory is entered
+            if output_dir is None:
+                # Raise and error if no output
+                raise (ValueError("Please add an output directory -- none identified"))
+            # Create a path based on the output directory
+            else:
+                # Create image path
+                im_path = Path(os.path.join(output_dir, "OptimalUMAP.jpeg"))
+                # Create csv path
+                csv_path = Path(os.path.join(output_dir, "OptimalUMAP.csv"))
+
+            # Plot figure and save results
+            fig, axs = plt.subplots()
+            # plot the fit value
+            axs.plot(px, nom, c="r", label="Fitted Curve", linewidth=3)
+            # add 2 sigma uncertainty lines
+            axs.plot(px, nom - 2 * std, c="c", label="95% CI", alpha=0.6, linewidth=3)
+            axs.plot(px, nom + 2 * std, c="c", alpha=0.6, linewidth=3)
+            # plot the observed values
+            axs.plot(xdata, met, "ko", label="Observed Data", markersize=8)
+            # Change axis names
+            axs.set_xlabel("Dimension")
+            axs.set_ylabel("Min-Max Scaled Cross-Entropy")
+            fig.suptitle("Optimal Dimension Estimation", fontsize=12)
+            axs.legend()
+            # plt.show()
+            plt.savefig(im_path, dpi=600)
+
+            # Export the metric values to csv
+            ce_res_norm.to_csv(csv_path)
+
+        # Use the optimal UMAP embedding to add to the class object
+        base = model_dict[opt_dim]
 
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
