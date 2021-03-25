@@ -48,6 +48,55 @@ def find_ab_params(spread, min_dist):
     params, covar = curve_fit(curve, xv, yv)
     return params[0], params[1]
 
+def check_base_object(base):
+    """
+    check base umap object before implementing simplicial set embedding
+    """
+    # Handle all the optional plotting arguments, setting default
+    if base.a is None or base.b is None:
+        base._a, base._b = find_ab_params(base.spread, base.min_dist)
+    else:
+        base._a = base.a
+        base._b = base.b
+    if isinstance(base.init, np.ndarray):
+        init = check_array(base.init, dtype=np.float32, accept_sparse=False)
+    else:
+        init = base.init
+    base._initial_alpha = base.learning_rate
+    base._validate_parameters()
+    # return checked umap object
+    return base
+
+def simplicial_set_embedding_HDIprep(base):
+    """
+    simplicial set embedding function from umap tailored to HDIprep input
+    """
+    alt_embed,_ = umap.umap_.simplicial_set_embedding(
+        data=base._raw_data,
+        graph=base.graph_,
+        n_components=base.n_components,
+        initial_alpha=base._initial_alpha,
+        a=base._a,
+        b=base._b,
+        gamma=base.repulsion_strength,
+        negative_sample_rate=base.negative_sample_rate,  # Default umap behavior is n_epochs None -- converts to 0
+        n_epochs=200,
+        init=base.init,
+        random_state=check_random_state(base.random_state),
+        metric=base._input_distance_func,
+        metric_kwds=base._metric_kwds,
+        densmap=False,
+        densmap_kwds={},
+        output_dens=False,
+        output_metric=base._output_distance_func,
+        output_metric_kwds=base._output_metric_kwds,
+        euclidean_output=base.output_metric in ("euclidean", "l2"),
+        parallel=base.random_state is None,
+        verbose=base.verbose,
+    )
+    # return embedding
+    return alt_embed
+
 
 # Create a class for storing multiple datasets for a single modality
 class IntraModalityDataset:
@@ -76,7 +125,7 @@ class IntraModalityDataset:
             self.set_dict.update({dat.hdi.data.filename: dat})
 
     # Create dimension reduction method with UMAP
-    def RunUMAP(self, landmarks=3000, **kwargs):
+    def RunUMAP(self, **kwargs):
         """Creates an embedding of high-dimensional imaging data. Each
         pixel will be represented by its coordinates scaled from 0-1 after
         hyperspectral image construction.
@@ -84,8 +133,6 @@ class IntraModalityDataset:
         Returned will be a numpy array containing pixels and their
         embedded coordinates.
         """
-        # check for landmarks
-        self.landmarks = landmarks
 
         # Create a dictionary to store indices in
         file_idx = {}
@@ -113,103 +160,43 @@ class IntraModalityDataset:
         # Set up UMAP parameters
         base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
 
-        # Check for landmark subsampling
-        if self.landmarks is not None:
-                # Print update
-                print("Computing "+str(landmarks)+" spectral landmarks...")
-                # Calculate singular value decomposition
-                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
-
-                # Calculate spectral clustering
-                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
-                #Get kmeans labels using the singular value decomposition and minibatch k means
-                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
-                # Get  mean values from clustering to define spectral centroids
-                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
-                # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
-
-                # Create simplicial set from centroided data
-                base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
-
         # Handle all the optional plotting arguments, setting default
-        if base.a is None or base.b is None:
-            base._a, base._b = find_ab_params(base.spread, base.min_dist)
-        else:
-            base._a = base.a
-            base._b = base.b
-
-        if isinstance(base.init, np.ndarray):
-            init = check_array(base.init, dtype=np.float32, accept_sparse=False)
-        else:
-            init = base.init
-
-        base._initial_alpha = base.learning_rate
-
-        base._validate_parameters()
+        base = check_base_object(base)
 
         # Print update for this dimension
         print("Embedding in dimension " + str(base.n_components))
         # Use previous simplicial set and embedding components to embed in higher dimension
-        alt_embed,_ = umap.umap_.simplicial_set_embedding(
-            data=base._raw_data,
-            graph=base.graph_,
-            n_components=base.n_components,
-            initial_alpha=base._initial_alpha,
-            a=base._a,
-            b=base._b,
-            gamma=base.repulsion_strength,
-            negative_sample_rate=base.negative_sample_rate,  # Default umap behavior is n_epochs None -- converts to 0
-            n_epochs=200,
-            init=base.init,
-            random_state=check_random_state(base.random_state),
-            metric=base._input_distance_func,
-            metric_kwds=base._metric_kwds,
-            densmap=False,
-            densmap_kwds={},
-            output_dens=False,
-            output_metric=base._output_distance_func,
-            output_metric_kwds=base._output_metric_kwds,
-            euclidean_output=base.output_metric in ("euclidean", "l2"),
-            parallel=base.random_state is None,
-            verbose=base.verbose,
-        )
+        alt_embed = simplicial_set_embedding_HDIprep(base)
         # update embedding
         base.embedding_ = alt_embed
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
 
-            # Check for landmark sampling
-            if self.landmarks is None:
-                # Check to see if file has subsampling
-                if self.set_dict[f].hdi.data.sub_coordinates is not None:
-                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.sub_coordinates,
-                            )
-                        }
-                    )
-                else:
-                    # Otherwise use the full coordinates list
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.coordinates,
-                            )
-                        }
-                    )
-                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
-                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
-                    )
-            # Otherwise use the spectral landmark embedding
+            # Check to see if file has subsampling
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.sub_coordinates,
+                        )
+                    }
+                )
             else:
-                # Update the single UMAP object blank
-                self.umap_embeddings[f] = 0
+                # Otherwise use the full coordinates list
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.coordinates,
+                        )
+                    }
+                )
+                # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                    sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                )
 
         # Update the transform mode
         base.transform_mode = "embedding"
@@ -217,7 +204,7 @@ class IntraModalityDataset:
         self.umap_object = base
 
     # Create dimension reduction method with UMAP
-    def RunParametricUMAP(self, landmarks=3000, **kwargs):
+    def RunParametricUMAP(self, **kwargs):
         """Creates an embedding of high-dimensional imaging data. Each
         pixel will be represented by its coordinates scaled from 0-1 after
         hyperspectral image construction.
@@ -225,8 +212,6 @@ class IntraModalityDataset:
         Returned will be a numpy array containing pixels and their
         embedded coordinates.
         """
-        # check for landmarks
-        self.landmarks = landmarks
 
         # Create a dictionary to store indices in
         file_idx = {}
@@ -248,69 +233,38 @@ class IntraModalityDataset:
 
             # Get the spectrum
             tmp_frame = pd.concat([tmp_frame, hdi_imp.hdi.data.pixel_table])
-            # Clear the old pixel table from memory
-            # hdi_imp.hdi.data.pixel_table = None
 
-        # Check for landmark subsampling
-        if self.landmarks is not None:
-                # Set up UMAP parameters
-                base = umap.parametric_umap.ParametricUMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
-                # Print update
-                print("Computing "+str(landmarks)+" spectral landmarks...")
-                # Calculate singular value decomposition
-                a, b, VT = extmath.randomized_svd(base.graph_,n_components=100,random_state=0)
-
-                # Calculate spectral clustering
-                kmeans = MiniBatchKMeans(self.landmarks,init_size=3 * self.landmarks,batch_size=10000,random_state=0)
-                #Get kmeans labels using the singular value decomposition and minibatch k means
-                kmean_lab = kmeans.fit_predict(base.graph_.dot(VT.T))
-                # Get  mean values from clustering to define spectral centroids
-                means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
-                # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
-
-                # Print update for this dimension
-                print("Embedding in dimension " + str(base.n_components))
-                # Set up UMAP parameters
-                base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",**kwargs).fit(tmp_frame)
-        else:
-            # run parametric umap with no spectral landmark selection
-            base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",**kwargs).fit(tmp_frame)
+        # run parametric umap with no spectral landmark selection
+        base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",**kwargs).fit(tmp_frame)
 
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
 
-            # Check for landmark sampling
-            if self.landmarks is None:
-                # Check to see if file has subsampling
-                if self.set_dict[f].hdi.data.sub_coordinates is not None:
-                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.sub_coordinates,
-                            )
-                        }
-                    )
-                else:
-                    # Otherwise use the full coordinates list
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.coordinates,
-                            )
-                        }
-                    )
-                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
-                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
-                    )
-            # Otherwise use the spectral landmark embedding
+            # Check to see if file has subsampling
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.sub_coordinates,
+                        )
+                    }
+                )
             else:
-                # Update the single UMAP object blank
-                self.umap_embeddings[f] = 0
+                # Otherwise use the full coordinates list
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.coordinates,
+                        )
+                    }
+                )
+                # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                    sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                )
 
         # Add the umap object to the class
         self.umap_object = base
@@ -351,8 +305,6 @@ class IntraModalityDataset:
 
             # Get the spectrum
             tmp_frame = pd.concat([tmp_frame, hdi_imp.hdi.data.pixel_table])
-            # Clear the old pixel table from memory
-            # hdi_imp.hdi.data.pixel_table = None
 
         # Create list to store the results in
         ce_res = {}
@@ -383,71 +335,64 @@ class IntraModalityDataset:
                 # Get  mean values from clustering to define spectral centroids
                 means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
                 # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
+                tmp_centroids = means.groupby("ClusterID").mean().values
 
                 # Create simplicial set from centroided data
-                base = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_frame)
+                base_centroids = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_centroids)
 
-        # Handle all the optional plotting arguments, setting default
-        if base.a is None or base.b is None:
-            base._a, base._b = find_ab_params(base.spread, base.min_dist)
+                # Handle all the optional plotting arguments, setting default
+                base_centroids = check_base_object(base_centroids)
+
+                # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+                for dim in range(dim_range[0], dim_range[-1] + 1):
+                    # adjust base number of components
+                    base_centroids.n_components = dim
+                    # Print update for this dimension
+                    print("Embedding in dimension " + str(dim))
+                    # Use previous simplicial set and embedding components to embed in higher dimension
+                    alt_embed = simplicial_set_embedding_HDIprep(base_centroids)
+                    # Print update
+                    print("Finished embedding")
+
+                    # Update the embedding dictionary
+                    embed_dict.update({dim: alt_embed})
+
+                    # Compute the fuzzy set cross entropy
+                    cs = fuzz.FuzzySetCrossEntropy(
+                        alt_embed, base_centroids.graph_, base_centroids.min_dist, n_jobs
+                    )
+                    # Update list for now
+                    ce_res.update({dim: cs})
+
+                # Construct a dataframe from the dictionary of results
+                ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
+                # set base centroids to 0 to save memory
+                base_centroids = 0
+
         else:
-            base._a = base.a
-            base._b = base.b
+                # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+                for dim in range(dim_range[0], dim_range[-1] + 1):
+                    # adjust base number of components
+                    base.n_components = dim
+                    # Print update for this dimension
+                    print("Embedding in dimension " + str(dim))
+                    # Use previous simplicial set and embedding components to embed in higher dimension
+                    alt_embed = simplicial_set_embedding_HDIprep(base)
+                    # Print update
+                    print("Finished embedding")
 
-        if isinstance(base.init, np.ndarray):
-            init = check_array(base.init, dtype=np.float32, accept_sparse=False)
-        else:
-            init = base.init
+                    # Update the embedding dictionary
+                    embed_dict.update({dim: alt_embed})
 
-        base._initial_alpha = base.learning_rate
+                    # Compute the fuzzy set cross entropy
+                    cs = fuzz.FuzzySetCrossEntropy(
+                        alt_embed, base.graph_, base.min_dist, n_jobs
+                    )
+                    # Update list for now
+                    ce_res.update({dim: cs})
 
-        base._validate_parameters()
-
-        # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
-        for dim in range(dim_range[0], dim_range[-1] + 1):
-
-            # Print update for this dimension
-            print("Embedding in dimension " + str(dim))
-            # Use previous simplicial set and embedding components to embed in higher dimension
-            alt_embed,_ = umap.umap_.simplicial_set_embedding(
-                data=base._raw_data,
-                graph=base.graph_,
-                n_components=dim,
-                initial_alpha=base._initial_alpha,
-                a=base._a,
-                b=base._b,
-                gamma=base.repulsion_strength,
-                negative_sample_rate=base.negative_sample_rate,  # Default umap behavior is n_epochs None -- converts to 0
-                n_epochs=200,
-                init=base.init,
-                random_state=check_random_state(base.random_state),
-                metric=base._input_distance_func,
-                metric_kwds=base._metric_kwds,
-                densmap=False,
-                densmap_kwds={},
-                output_dens=False,
-                output_metric=base._output_distance_func,
-                output_metric_kwds=base._output_metric_kwds,
-                euclidean_output=base.output_metric in ("euclidean", "l2"),
-                parallel=base.random_state is None,
-                verbose=base.verbose,
-            )
-            # Print update
-            print("Finished embedding")
-
-            # Update the embedding dictionary
-            embed_dict.update({dim: alt_embed})
-
-            # Compute the fuzzy set cross entropy
-            cs = fuzz.FuzzySetCrossEntropy(
-                alt_embed, base.graph_, base.min_dist, n_jobs
-            )
-            # Update list for now
-            ce_res.update({dim: cs})
-
-        # Construct a dataframe from the dictionary of results
-        ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
+                # Construct a dataframe from the dictionary of results
+                ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
 
         # Print update
         print("Finding optimal embedding dimension through exponential fit...")
@@ -527,44 +472,47 @@ class IntraModalityDataset:
             # Export the metric values to csv
             ce_res_norm.to_csv(csv_path)
 
-        # Use the optimal UMAP embedding to add to the class object
-        base.embedding_ = embed_dict[opt_dim]
+        # check if landmarks
+        if self.landmarks is not None:
+            # implement umap on the tmp frame -- faster than centroids method
+            base = check_base_object(base)
+            # Use the optimal UMAP embedding to add to the class object
+            base.embedding_ = simplicial_set_embedding_HDIprep(base)
+        # otherwise update the embedding with the original
+        else:
+            base.embedding_ = embed_dict[opt_dim]
         # Update the transform mode
         base.transform_mode = "embedding"
+        # set base compnent dimensionality
+        base.n_components = opt_dim
 
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
-            # Check for landmark sampling
-            if landmarks is None:
-                # Check to see if file has subsampling
-                if self.set_dict[f].hdi.data.sub_coordinates is not None:
-                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.sub_coordinates,
-                            )
-                        }
-                    )
-                else:
-                    # Otherwise use the full coordinates list
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.coordinates,
-                            )
-                        }
-                    )
-                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
-                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
-                    )
-            # Otherwise use the spectral landmark embedding
+            # Check to see if file has subsampling
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.sub_coordinates,
+                        )
+                    }
+                )
             else:
-                # Update the single UMAP object blank
-                self.umap_embeddings[f] = 0
+                # Otherwise use the full coordinates list
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.coordinates,
+                        )
+                    }
+                )
+                # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                    sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                )
 
         # Add the umap object to the class
         self.umap_object = base
@@ -610,8 +558,6 @@ class IntraModalityDataset:
 
             # Get the spectrum
             tmp_frame = pd.concat([tmp_frame, hdi_imp.hdi.data.pixel_table])
-            # Clear the old pixel table from memory
-            # hdi_imp.hdi.data.pixel_table = None
 
         # Create list to store the results in
         ce_res = {}
@@ -641,30 +587,49 @@ class IntraModalityDataset:
                 # Get  mean values from clustering to define spectral centroids
                 means = pd.concat([tmp_frame, pd.DataFrame(kmean_lab,columns=["ClusterID"], index=tmp_frame.index)],axis=1)
                 # Get mean values from dataframe
-                tmp_frame = means.groupby("ClusterID").mean().values
+                tmp_centroids = means.groupby("ClusterID").mean().values
 
-        # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
-        for dim in range(dim_range[0], dim_range[-1] + 1):
+                # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+                for dim in range(dim_range[0], dim_range[-1] + 1):
 
-            # Print update for this dimension
-            print("Embedding in dimension " + str(dim))
-            # Use previous simplicial set and embedding components to embed in higher dimension
-            model = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=dim,**kwargs).fit(tmp_frame)
-            # Print update
-            print("Finished embedding")
+                    # Print update for this dimension
+                    print("Embedding in dimension " + str(dim))
+                    # Use previous simplicial set and embedding components to embed in higher dimension
+                    base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=dim,**kwargs).fit(tmp_centroids)
+                    # Print update
+                    print("Finished embedding")
 
-            # Update the embedding dictionary
-            model_dict.update({dim: model})
+                    # Compute the fuzzy set cross entropy
+                    cs = fuzz.FuzzySetCrossEntropy(
+                        base.embedding_, base.graph_, base.min_dist, n_jobs
+                    )
+                    # Update list for now
+                    ce_res.update({dim: cs})
 
-            # Compute the fuzzy set cross entropy
-            cs = fuzz.FuzzySetCrossEntropy(
-                model.embedding_, model.graph_, base.min_dist, n_jobs
-            )
-            # Update list for now
-            ce_res.update({dim: cs})
+                # Construct a dataframe from the dictionary of results
+                ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
+        else:
+                # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
+                for dim in range(dim_range[0], dim_range[-1] + 1):
 
-        # Construct a dataframe from the dictionary of results
-        ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
+                    # Print update for this dimension
+                    print("Embedding in dimension " + str(dim))
+                    # Use previous simplicial set and embedding components to embed in higher dimension
+                    base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=dim,**kwargs).fit(tmp_frame)
+                    # Print update
+                    print("Finished embedding")
+
+                    # Compute the fuzzy set cross entropy
+                    cs = fuzz.FuzzySetCrossEntropy(
+                        base.embedding_, base.graph_, base.min_dist, n_jobs
+                    )
+                    # Update list for now
+                    ce_res.update({dim: cs})
+                    #update the model dictionary
+                    model_dict.update({dim: base})
+
+                # Construct a dataframe from the dictionary of results
+                ce_res = pd.DataFrame(ce_res, index=["Cross-Entropy"]).T
 
         # Print update
         print("Finding optimal embedding dimension through exponential fit...")
@@ -744,42 +709,43 @@ class IntraModalityDataset:
             # Export the metric values to csv
             ce_res_norm.to_csv(csv_path)
 
-        # Use the optimal UMAP embedding to add to the class object
-        base = model_dict[opt_dim]
+        #check if landmarks
+        if self.landmarks is not None:
+            # implement parametric umap on optimal dimensionality
+            base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=opt_dim,**kwargs).fit(tmp_frame)
+        # otherwise fill in with existing model
+        else:
+            # Use the optimal UMAP embedding to add to the class object
+            base = model_dict[opt_dim]
 
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
-            # Check for landmark sampling
-            if landmarks is None:
-                # Check to see if file has subsampling
-                if self.set_dict[f].hdi.data.sub_coordinates is not None:
-                    # Extract the corresponding index from  UMAP embedding with subsample coordinates
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.sub_coordinates,
-                            )
-                        }
-                    )
-                else:
-                    # Otherwise use the full coordinates list
-                    self.umap_embeddings.update(
-                        {
-                            f: pd.DataFrame(
-                                base.embedding_[tup[0] : tup[1], :],
-                                index=self.set_dict[f].hdi.data.coordinates,
-                            )
-                        }
-                    )
-                    # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
-                    self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                        sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
-                    )
-            # Otherwise use the spectral landmark embedding
+
+            # Check to see if file has subsampling
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
+                # Extract the corresponding index from  UMAP embedding with subsample coordinates
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.sub_coordinates,
+                        )
+                    }
+                )
             else:
-                # Update the single UMAP object blank
-                self.umap_embeddings[f] = 0
+                # Otherwise use the full coordinates list
+                self.umap_embeddings.update(
+                    {
+                        f: pd.DataFrame(
+                            base.embedding_[tup[0] : tup[1], :],
+                            index=self.set_dict[f].hdi.data.coordinates,
+                        )
+                    }
+                )
+                # Here, ensure that the appropriate order for the embedding is given (c-style...imzml parser is fortran)
+                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
+                    sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
+                )
 
         # Add the umap object to the class
         self.umap_object = base
@@ -806,44 +772,9 @@ class IntraModalityDataset:
 
             print("working on " + str(f) + "...")
 
-            # Check for landmark subsampling
-            if self.landmarks is not None:
-                # Read the file and use the mask to create complementary set of pixels
-                new_data = hdi_reader.HDIreader(
-                    path_to_data=f,
-                    path_to_markers=None,
-                    flatten=True,
-                    subsample=None,
-                    mask=None,
-                )
-                # print update
-                print("Transforming pixels into UMAP embedding of spectral centroids...")
-                # Run the new pixel table through umap transformer
-                embedding_projection = self.umap_object.transform(
-                    new_data.hdi.data.pixel_table
-                )
-                # Add the projection to dataframe and coerce with existing embedding
-                embedding_projection = pd.DataFrame(
-                embedding_projection,
-                    index=list(new_data.hdi.data.pixel_table.index),
-                )
 
-                # Create new object
-                self.umap_embeddings[f] = pd.DataFrame(embedding_projection)
-
-                # Reindex data frame to row major orientation
-                self.umap_embeddings[f] = self.umap_embeddings[f].reindex(
-                    sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
-                )
-
-                # Use the new embedding to map coordinates to the image
-                hyper_im = utils.CreateHyperspectralImage(
-                    embedding=self.umap_embeddings[f],
-                    array_size=self.set_dict[f].hdi.data.array_size,
-                    coordinates=list(self.umap_embeddings[f].index),
-                )
             # Check to see if there is subsampling
-            elif self.set_dict[f].hdi.data.sub_coordinates is not None:
+            if self.set_dict[f].hdi.data.sub_coordinates is not None:
 
                 # Get the inverse pixels
                 inv_pix = list(
