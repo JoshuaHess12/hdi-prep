@@ -122,7 +122,7 @@ def SubsetCoordinates(
             map(
                 tuple,
                 np.vstack(
-                    (col.ravel() + 1, row.ravel() + 1, np.ones(len(data), dtype=np.int))
+                    (col.ravel() + 1, row.ravel() + 1, np.ones(len(data), dtype=np.int64))
                 ).T,
             )
         )
@@ -190,7 +190,7 @@ def SubsetCoordinates(
             map(
                 tuple,
                 np.vstack(
-                    (col.ravel() + 1, row.ravel() + 1, np.ones(len(data), dtype=np.int))
+                    (col.ravel() + 1, row.ravel() + 1, np.ones(len(data), dtype=np.int64))
                 ).T,
             )
         )
@@ -267,7 +267,7 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
     # Get the coordinates where the mask is
     where = np.where(mask)
     # Create list of tuples where mask coordinates are (1-indexed) -- form (x,y,z) with z=1 (same as imzML)
-    coords = list(zip(where[1] + 1, where[0] + 1, np.ones(len(where[0]), dtype=np.int)))
+    coords = list(zip(where[1] + 1, where[0] + 1, np.ones(len(where[0]), dtype=np.int64)))
     # Reorder the coordinates to be c style
     coords = sorted(coords, key=itemgetter(1, 0))
 

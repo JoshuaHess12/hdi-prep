@@ -754,7 +754,7 @@ class IntraModalityDataset:
         self.umap_optimal_dim = opt_dim
 
     # Add function for creating hyperspectral image from UMAP
-    def SpatiallyMapUMAP(self, method="umap"):
+    def SpatiallyMapUMAP(self, method="rectangular"):
         """Spatially fill arrays based on UMAP embeddings. Must be run after RunUMAP."""
 
         # Check to make sure that UMAP object in class is not empty
@@ -771,7 +771,6 @@ class IntraModalityDataset:
         for f, locs in self.umap_embeddings.items():
 
             print("working on " + str(f) + "...")
-
 
             # Check to see if there is subsampling
             if self.set_dict[f].hdi.data.sub_coordinates is not None:
@@ -833,20 +832,25 @@ class IntraModalityDataset:
                     sorted(list(self.umap_embeddings[f].index), key=itemgetter(1, 0))
                 )
 
+            # print update
+            print ('Reconstructing image...')
+            # check for mask to use in reconstruction
+            if method=="rectangular":
                 # Use the new embedding to map coordinates to the image
+                hyper_im = utils.CreateHyperspectralImageRectangular(
+                    embedding=self.umap_embeddings[f],
+                    array_size=self.set_dict[f].hdi.data.array_size,
+                    coordinates=list(self.umap_embeddings[f].index),
+                )
+            elif method=="coordinate":
+                # use array reshaping (faster)
                 hyper_im = utils.CreateHyperspectralImage(
                     embedding=self.umap_embeddings[f],
                     array_size=self.set_dict[f].hdi.data.array_size,
                     coordinates=list(self.umap_embeddings[f].index),
                 )
-
             else:
-                # Use the new embedding to map coordinates to the image
-                hyper_im = utils.CreateHyperspectralImage(
-                    embedding=self.umap_embeddings[f],
-                    array_size=self.set_dict[f].hdi.data.array_size,
-                    coordinates=list(self.umap_embeddings[f].index),
-                )
+                raise(ValueError("Spatial reconstruction method not supported."))
 
             # Update list
             results_dict.update({f: hyper_im})

@@ -8,7 +8,6 @@ import pandas as pd
 import nibabel as nib
 from pathlib import Path
 
-
 # Define function
 def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
     """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
@@ -55,6 +54,35 @@ def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
     # Return the hyperspectral image
     return im
 
+# Define function
+def CreateHyperspectralImageRectangular(embedding, array_size, coordinates, scale=True):
+    """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
+    imaging data by rescaling each channel from 0-1
+
+    array_size: tuple indicating size of image
+    embedding: Embedding resulting from dimension reduction
+    coordinates: 1-indexed list of tuples indicating coordinates of image
+
+    All coordinates in the image not listed in coordinates object will be masked
+    and set to 0 (background)
+    """
+
+    # get the embedding shape
+    number_channels = embedding.shape[1]
+    # Create zeros array to fill with number channels equal to embedding dimension
+    im = embedding.values.reshape((array_size[0], array_size[1], number_channels))
+
+    # Check to see if scaling the pixel values 0 to 1
+    if scale:
+        # Scale the data 0-1 for hyperspectral image construction
+        for dim in range(im.shape[2]):
+            # min-max scaler
+            im[:, :, dim] = (im[:, :, dim] - im[:, :, dim].min()) / (
+                im[:, :, dim].max() - im[:, :, dim].min()
+            )
+
+    # Return the hyperspectral image
+    return im
 
 def ExportNifti(image, filename, padding=None):
     """This function will export your final images to nifti format for image
