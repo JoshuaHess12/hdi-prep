@@ -142,4 +142,4 @@ class CYTreader:
         self.data.filename = path_to_cyt
 
         # Print an update on the parsing of cytometry data
-        print("Finished parsing cytometry data")
+        print("Finished parsing image data")

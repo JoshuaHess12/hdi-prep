@@ -589,19 +589,26 @@ class IntraModalityDataset:
                 # Get mean values from dataframe
                 tmp_centroids = means.groupby("ClusterID").mean().values
 
+                # Create simplicial set from centroided data
+                base_centroids = umap.UMAP(transform_mode="graph",**kwargs).fit(tmp_centroids)
+
+                # Handle all the optional plotting arguments, setting default
+                base_centroids = check_base_object(base_centroids)
+
                 # Iterate through each subsequent embedding dimension -- add +1 because we have already used range
                 for dim in range(dim_range[0], dim_range[-1] + 1):
-
+                    # adjust base number of components
+                    base_centroids.n_components = dim
                     # Print update for this dimension
                     print("Embedding in dimension " + str(dim))
                     # Use previous simplicial set and embedding components to embed in higher dimension
-                    base = umap.parametric_umap.ParametricUMAP(transform_mode="embedding",n_components=dim,**kwargs).fit(tmp_centroids)
+                    alt_embed = simplicial_set_embedding_HDIprep(base_centroids)
                     # Print update
                     print("Finished embedding")
 
                     # Compute the fuzzy set cross entropy
                     cs = fuzz.FuzzySetCrossEntropy(
-                        base.embedding_, base.graph_, base.min_dist, n_jobs
+                        alt_embed, base_centroids.graph_, base_centroids.min_dist, n_jobs
                     )
                     # Update list for now
                     ce_res.update({dim: cs})

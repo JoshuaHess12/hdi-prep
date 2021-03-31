@@ -28,6 +28,12 @@ class TIFreader:
         im = skimage.io.imread(str(path_to_tif), plugin="tifffile")
         # Check to see if the number of channels is greater than one
         im_shape = im.shape
+        # check to see if the image is a tiff hyperstack based on the shape
+        if len(im_shape) == 4:
+            # ravel along the last axis
+            im = np.concatenate([im[:,:,:,i] for i in range(im.shape[3])])
+            # recalculate the image shape
+            im_shape = im.shape
         # Check to see if the image is considered xyc or just xy(single channel)
         # Note: skimage with tifffile plugin reads channel numbers of 1 as xy array,
         # and reads images with 3 and 4 channels in the correct order. Channel numbers
