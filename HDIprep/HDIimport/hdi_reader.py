@@ -23,6 +23,7 @@ class HDIreader:
         flatten=False,
         subsample=None,
         mask=None,
+        save_mem=False,
         **kwargs
     ):
         """Initialize class to store data in. Ensure appropriate file format
@@ -94,6 +95,12 @@ class HDIreader:
                 mask=mask,
                 **kwargs
             )
+
+        # check to see if saving storage
+        if save_mem:
+            # set image arrays to none
+            self.hdi.data.image = None
+            self.hdi.data.mask = None
 
         # If none of the above print an update and an error
         else:

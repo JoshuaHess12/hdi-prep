@@ -761,7 +761,7 @@ class IntraModalityDataset:
         self.umap_optimal_dim = opt_dim
 
     # Add function for creating hyperspectral image from UMAP
-    def SpatiallyMapUMAP(self, method="rectangular"):
+    def SpatiallyMapUMAP(self,method="rectangular",save_mem=True):
         """Spatially fill arrays based on UMAP embeddings. Must be run after RunUMAP."""
 
         # Check to make sure that UMAP object in class is not empty
@@ -789,6 +789,13 @@ class IntraModalityDataset:
                     )
                 )
 
+                # check for saving memory
+                if save_mem:
+                    # remove pixel unncessary portions of stored image
+                    self.set_dict[f].hdi.data.pixel_table = None
+                    self.set_dict[f].hdi.data.coordinates = None
+                    self.set_dict[f].hdi.data.sub_coordinates = None
+
                 # Create a mask based off array size and current UMAP data points
                 data = np.ones(len(inv_pix), dtype=np.bool)
                 # Create row data for scipy coo matrix (-1 index for 0-based python)
@@ -802,7 +809,7 @@ class IntraModalityDataset:
                 )
 
                 # Remove the other objects used to create the mask to save memory
-                data, row, col = None, None, None
+                data, row, col, inv_pix = None, None, None, None
 
                 # Read the file and use the mask to create complementary set of pixels
                 new_data = hdi_reader.HDIreader(
@@ -811,6 +818,7 @@ class IntraModalityDataset:
                     flatten=True,
                     subsample=None,
                     mask=sub_mask,
+                    save_mem=True
                 )
 
                 # Remove the mask to save memory
@@ -833,6 +841,9 @@ class IntraModalityDataset:
 
                 # Concatenate with existing UMAP object
                 self.umap_embeddings[f] = pd.concat([locs, embedding_projection])
+
+                # save memory do not store embedding twice
+                embedding_projection = None
 
                 # Reindex data frame to row major orientation
                 self.umap_embeddings[f] = self.umap_embeddings[f].reindex(

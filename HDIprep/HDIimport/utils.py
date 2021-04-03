@@ -281,23 +281,23 @@ def FlattenZstack(z_stack, z_stack_shape, mask, subsample, **kwargs):
         # Create an array from the sparse scipy matrix
         sub_mask = sub_mask.toarray()
         # Use the mask to extract all the pixels
-        flat_im = z_stack[np.where(sub_mask)]
+        z_stack = z_stack[np.where(sub_mask)]
         # Remove the masks to save memory
         sub_mask = None
         # Create a pandas dataframe with columns being the number of channels
-        flat_im = pd.DataFrame(
-            flat_im,
+        z_stack = pd.DataFrame(
+            z_stack,
             columns=[str(num) for num in range(0, num_channels)],
             index=sub_coords,
         )
     # Otherwise there is no subsampling
     else:
         # Use the non-subsampled mask to extract data
-        flat_im = z_stack[np.where(mask)]
+        z_stack = z_stack[np.where(mask)]
         # Create a pandas dataframe with columns being the  number of channels
-        flat_im = pd.DataFrame(
-            flat_im, columns=[str(num) for num in range(0, num_channels)], index=coords
+        z_stack = pd.DataFrame(
+            z_stack, columns=[str(num) for num in range(0, num_channels)], index=coords
         )
 
     # Return the flattened array
-    return flat_im, coords
+    return z_stack, coords
