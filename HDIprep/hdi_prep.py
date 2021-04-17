@@ -23,10 +23,10 @@ import uncertainties.unumpy as unp
 import uncertainties as unc
 
 # Import custom modules
-from HDIimport import hdi_reader
-import fuzzy_operations as fuzz
-import morphology
-import utils
+from .HDIimport import hdi_reader
+from .fuzzy_operations import FuzzySetCrossEntropy
+from .morphology import MedFilter, Opening, Closing, NonzeroSlice, Thresholding, MorphFill
+from .utils import Exp, CreateHyperspectralImage, CreateHyperspectralImageRectangular, ExportNifti
 
 
 
@@ -358,7 +358,7 @@ class IntraModalityDataset:
                     embed_dict.update({dim: alt_embed})
 
                     # Compute the fuzzy set cross entropy
-                    cs = fuzz.FuzzySetCrossEntropy(
+                    cs = FuzzySetCrossEntropy(
                         alt_embed, base_centroids.graph_, base_centroids.min_dist, n_jobs
                     )
                     # Update list for now
@@ -385,7 +385,7 @@ class IntraModalityDataset:
                     embed_dict.update({dim: alt_embed})
 
                     # Compute the fuzzy set cross entropy
-                    cs = fuzz.FuzzySetCrossEntropy(
+                    cs = FuzzySetCrossEntropy(
                         alt_embed, base.graph_, base.min_dist, n_jobs
                     )
                     # Update list for now
@@ -408,7 +408,7 @@ class IntraModalityDataset:
         # Get the x axis information
         xdata = np.int64(ce_res_norm.index.values)
         # Fit the data using exponential function
-        popt, pcov = curve_fit(utils.Exp, xdata, met, p0=(0, 0.01, 1))
+        popt, pcov = curve_fit(Exp, xdata, met, p0=(0, 0.01, 1))
 
         # create parameters from scipy fit
         a, b, c = unc.correlated_values(popt, pcov)
@@ -607,7 +607,7 @@ class IntraModalityDataset:
                     print("Finished embedding")
 
                     # Compute the fuzzy set cross entropy
-                    cs = fuzz.FuzzySetCrossEntropy(
+                    cs = FuzzySetCrossEntropy(
                         alt_embed, base_centroids.graph_, base_centroids.min_dist, n_jobs
                     )
                     # Update list for now
@@ -627,7 +627,7 @@ class IntraModalityDataset:
                     print("Finished embedding")
 
                     # Compute the fuzzy set cross entropy
-                    cs = fuzz.FuzzySetCrossEntropy(
+                    cs = FuzzySetCrossEntropy(
                         base.embedding_, base.graph_, base.min_dist, n_jobs
                     )
                     # Update list for now
@@ -652,7 +652,7 @@ class IntraModalityDataset:
         # Get the x axis information
         xdata = np.int64(ce_res_norm.index.values)
         # Fit the data using exponential function
-        popt, pcov = curve_fit(utils.Exp, xdata, met, p0=(0, 0.01, 1))
+        popt, pcov = curve_fit(Exp, xdata, met, p0=(0, 0.01, 1))
 
         # create parameters from scipy fit
         a, b, c = unc.correlated_values(popt, pcov)
@@ -855,14 +855,14 @@ class IntraModalityDataset:
             # check for mask to use in reconstruction
             if method=="rectangular":
                 # Use the new embedding to map coordinates to the image
-                hyper_im = utils.CreateHyperspectralImageRectangular(
+                hyper_im = CreateHyperspectralImageRectangular(
                     embedding=self.umap_embeddings[f],
                     array_size=self.set_dict[f].hdi.data.array_size,
                     coordinates=list(self.umap_embeddings[f].index),
                 )
             elif method=="coordinate":
                 # use array reshaping (faster)
-                hyper_im = utils.CreateHyperspectralImage(
+                hyper_im = CreateHyperspectralImage(
                     embedding=self.umap_embeddings[f],
                     array_size=self.set_dict[f].hdi.data.array_size,
                     coordinates=list(self.umap_embeddings[f].index),
@@ -947,14 +947,14 @@ class IntraModalityDataset:
             # Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 # If not, use the original image
-                hdi_imp.hdi.data.processed_image = morphology.MedFilter(
+                hdi_imp.hdi.data.processed_image = MedFilter(
                     hdi_imp.hdi.data.image, filter_size, parallel
                 )
 
             # Use the initiated image
             else:
                 # Use the processed image
-                hdi_imp.hdi.data.processed_image = morphology.MedFilter(
+                hdi_imp.hdi.data.processed_image = MedFilter(
                     hdi_imp.hdi.data.processed_image, filter_size, parallel
                 )
 
@@ -979,14 +979,14 @@ class IntraModalityDataset:
             # Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 # If not, use the original image
-                hdi_imp.hdi.data.processed_image = morphology.Thresholding(
+                hdi_imp.hdi.data.processed_image = Thresholding(
                     hdi_imp.hdi.data.image, type, thresh_value, correction
                 )
 
             # Use the initiated image
             else:
                 # Use the processed image
-                hdi_imp.hdi.data.processed_image = morphology.Thresholding(
+                hdi_imp.hdi.data.processed_image = Thresholding(
                     hdi_imp.hdi.data.processed_image, type, thresh_value, correction
                 )
 
@@ -1007,14 +1007,14 @@ class IntraModalityDataset:
             # Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 # If not, use the original image
-                hdi_imp.hdi.data.processed_image = morphology.Opening(
+                hdi_imp.hdi.data.processed_image = Opening(
                     hdi_imp.hdi.data.image, disk_size, parallel
                 )
 
             # Use the initiated image
             else:
                 # Use the processed image
-                hdi_imp.hdi.data.processed_image = morphology.Opening(
+                hdi_imp.hdi.data.processed_image = Opening(
                     hdi_imp.hdi.data.processed_image, disk_size, parallel
                 )
 
@@ -1035,14 +1035,14 @@ class IntraModalityDataset:
             # Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 # If not, use the original image
-                hdi_imp.hdi.data.processed_image = morphology.Closing(
+                hdi_imp.hdi.data.processed_image = Closing(
                     hdi_imp.hdi.data.image, disk_size, parallel
                 )
 
             # Use the initiated image
             else:
                 # Use the processed image
-                hdi_imp.hdi.data.processed_image = morphology.Closing(
+                hdi_imp.hdi.data.processed_image = Closing(
                     hdi_imp.hdi.data.processed_image, disk_size, parallel
                 )
 
@@ -1059,14 +1059,14 @@ class IntraModalityDataset:
             # Check to see if the preprocessed is initiated
             if hdi_imp.hdi.data.processed_image is None:
                 # If not, use the original image
-                hdi_imp.hdi.data.processed_image = morphology.MorphFill(
+                hdi_imp.hdi.data.processed_image = MorphFill(
                     hdi_imp.hdi.data.image
                 )
 
             # Use the initiated image
             else:
                 # Use the processed image
-                hdi_imp.hdi.data.processed_image = morphology.MorphFill(
+                hdi_imp.hdi.data.processed_image = MorphFill(
                     hdi_imp.hdi.data.processed_image
                 )
 
@@ -1093,7 +1093,7 @@ class IntraModalityDataset:
             (
                 hdi_imp.hdi.data.image,
                 hdi_imp.hdi.data.processed_image,
-            ) = morphology.NonzeroSlice(
+            ) = NonzeroSlice(
                 hdi_imp.hdi.data.processed_image, hdi_imp.hdi.data.image
             )
 
@@ -1158,11 +1158,11 @@ class IntraModalityDataset:
                 # Otherwise export the image
                 else:
                     # Export the original image
-                    utils.ExportNifti(hdi_imp.hdi.data.image, im_name, padding)
+                    ExportNifti(hdi_imp.hdi.data.image, im_name, padding)
             # Otherwise export the processed image
             else:
                 # Use utils export nifti function
-                utils.ExportNifti(hdi_imp.hdi.data.processed_image, im_name, padding)
+                ExportNifti(hdi_imp.hdi.data.processed_image, im_name, padding)
             # Add exported file names to class object -- connect input file name with the exported name
             connect_dict.update({f: im_name})
 

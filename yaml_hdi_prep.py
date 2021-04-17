@@ -7,7 +7,7 @@ import yaml
 from pathlib import Path
 
 # Import custom modules
-import hdi_prep
+from HDIprep import hdi_prep
 
 
 # Define parsing function
