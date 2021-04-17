@@ -7,7 +7,7 @@ import yaml
 from pathlib import Path
 
 # Import custom modules
-import intramodality_dataset
+import hdi_prep
 
 
 # Define parsing function
@@ -100,7 +100,7 @@ def RunHDIprepYAML(path_to_yaml, out_dir):
                 # yml["ProcessingSteps"][s] = {"RunUMAP": umap_args}
 
     # Use the import options in the yml object to import all datasets
-    intramod_set = intramodality_dataset.CreateDataset(**yml["ImportOptions"])
+    intramod_set = hdi_prep.CreateDataset(**yml["ImportOptions"])
 
     # Iterate through each step
     for s in range(len(yml["ProcessingSteps"])):

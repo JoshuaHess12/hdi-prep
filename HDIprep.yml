@@ -11,3 +11,9 @@ dependencies:
   - nibabel
   - scipy
   - operator
+  - umap-learn
+  - uncertainties
+  - seaborn
+  - matplotlib
+  - ast
+  - scikit-learn
