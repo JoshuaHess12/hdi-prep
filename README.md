@@ -63,8 +63,8 @@ ProcessingSteps:
 These options indicate import options inherited from class IntraModalityDataset and thus HDIimport:
 Required
 | Step | Options |
-| ImportOptions Parameters |
 | --- | --- |
+| ImportOptions Parameters |
 | `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
 | `--flatten` | flatten pixels to array (set `True` if compressing images) |
 |  |  |
