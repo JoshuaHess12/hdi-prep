@@ -1,17 +1,18 @@
 # HDIprep
 High-dimensional image reading, compression, and preprocessing workflow as part of the MIAAIM framework.
 
-**File Type(s) Supported**:
+## Implementation Details
+All steps  can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. HDIprep is available as a containerized workflow for easy installation via Docker <insert link>.
+
+### File Type(s) Supported
 - OME-TIF
 - TIF
 - HDF5
 - Nifti-1
 - imzML
 
-## Implementation Details
-All steps  can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. HDIprep is available as a containerized workflow for easy installation via Docker <insert link>.
-
 ### Command Line Usage with Docker (recommended):
+1. [Install]() nextflow and Docker. Check with `nextflow run hello` and `docker images` to make sure both are functional.
 All image processing and exporting can be run from the command line by calling python, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps:
 ```bash
 python command_hdi_prep.py --path_to_yaml /path/to/example.yaml
@@ -58,9 +59,15 @@ ProcessingSteps:
 ```
 *Note: lists are indicated in YAML files by the '-' character. HDIprep will run the steps listed sequentially*
 
-#### ImportOptions Parameters:
+#### Input Parameters:
 These options indicate import options inherited from class IntraModalityDataset and thus HDIimport:
 Required
+| Step | Options |
+| ImportOptions Parameters |
+| --- | --- |
+| `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
+| `--flatten` | flatten pixels to array (set `True` if compressing images) |
+|  |  |
 
 #### ProcessingSteps Parameters:
 
