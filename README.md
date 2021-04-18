@@ -56,7 +56,7 @@ ProcessingSteps:
       # reproducible results
       random_state: 1221
       # dimension range for steady state compression
-      dim_range: (1,7)
+      dim_range: (1,10)
       # export diagnostics for steady state compression
       export_diagnostics: True
       # output directory
@@ -70,23 +70,30 @@ ProcessingSteps:
 *Note: lists are indicated in YAML files by the '-' character. HDIprep will run the steps listed sequentially*
 
 #### Input Parameters:
+Options for import data and processing are listed below. Detailed descriptions of each function can be found within source code.
 | YAML Step | Options |
 | --- | --- |
 | 1. ImportOptions |
 | `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
-| `--flatten` | flatten pixels to array <br> `True` if compressing images <br> `False` if histology processing |
-| `--subsample` | subsample image for compression <br> `True` if compressing images <br> `False` if histology processing |
-| `--method` | subsampling method <br> `grid` for uniform grid sampling <br> `random` for random coordinate sampling <br> `pseudo_random` for random sampling initalized by uniform grids |
+| `--flatten` | flatten pixels to array <br> Options: <br>`True` if compressing images <br> `False` if histology processing |
+| `--subsample` | subsample image for compression  <br> Options: <br> `True` if compressing images <br> `False` if histology processing |
+| `--method` | subsampling method <br> <br> Options: <br> `grid` for uniform grid sampling <br> `random` for random coordinate sampling <br> `pseudo_random` for random sampling initalized by uniform grids |
 | `--grid_spacing` | tuple representing x and y spacing for grid sampling (Ex. `(5,5)`) |
-| `--masks` | paths to TIF masks if compressing only a portion of image |
-| `--save_mem` | option to reduce memory footprint <br> `True` if compressing very large images <br> `False` if running for interactive Python session |
+| `--masks` | paths to TIF masks if compressing only a portion of image (Ex. `./mymask.tif`)|
+| `--save_mem` | option to reduce memory footprint <br> Options: <br> `True` if compressing very large images <br> `False` if running for interactive Python session |
 | 2. ProcessingSteps |
-| `--RunOptimalUMAP` | run steady-state image compression with UMAP <br> `n_neighbors` nearest neighbors (Ex. `n_neighbors: 15`) <br> `landmarks` number of spectral centroids (Ex. `landmarks: 3000`) <br> `metric` metric to use for UMAP (Ex. `metric: "euclidean"`) <br> `random_state` for reproducible results (Ex. `random_state: "0"`) <br> `dim_range` tuple indicating range of dimensionalities for iterative embedding (Ex. `dim_range: "(1,10)"`) <br> `export_diagnostics` exports csv and image of steady state compression results (Ex. `export_diagnostics: True`) <br> `output_dir`  directory for export diagnostic expoting (Ex. `output_dir: "./outdirectory"` <br> `**kwargs` keyword arguments for [UMAP](https://umap-learn.readthedocs.io/en/latest/basic_usage.html)|
-| `--RunUMAP` | run UMAP compression |
-| `--RunOptimalParametricUMAP` | run steady-state image compression with neural network UMAP |
+| `RunOptimalUMAP` | run steady-state image compression with UMAP <br> Options: <br> `n_neighbors` nearest neighbors (Ex. `n_neighbors: 15`) <br> `landmarks` number of spectral centroids (Ex. `landmarks: 3000`) <br> `metric` metric to use for UMAP (Ex. `metric: "euclidean"`) <br> `random_state` for reproducible results (Ex. `random_state: 0`) <br> `dim_range` tuple indicating range of dimensionalities for iterative embedding (Ex. `dim_range: "(1,10)"`) <br> `export_diagnostics` exports csv and image of steady state compression results (Ex. `export_diagnostics: True`) <br> `output_dir`  directory for export diagnostic expoting (Ex. `output_dir: "./outdirectory")` <br> `**kwargs` keyword arguments to be passed to [UMAP](https://umap-learn.readthedocs.io/en/latest/basic_usage.html)|
+| `RunUMAP` | run UMAP compression <br> Options: <br> `**kwargs` to be passed to UMAP (link above) |
+| `RunOptimalParametricUMAP` | run steady-state image compression with neural network UMAP <br> Options: <br> same input options as `RunOptimalUMAP` |
+| `SpatiallyMapUMAP` | reconstruct image from pixel positions and UMAP embedding coordinates <br> Options: <br> `method` reconstruction method to use (`rectangular` for large images with no mask, 'coordinate' for masked images and all data in imzML format (Ex. `method: "rectangular"`)) <br> `save_mem` for large images (Ex. `save_mem: True`)) |
+| `ApplyManualMask` | apply manual mask for histology processing <br> Options: <br> mask is accessed from ImportOptions |
+| `MedianFilter` | remove salt and pepper noise for histology processing <br> Options: <br> `filter_size` size for disk used in filtering (Ex. `filter_size: 15`) <br> `parallel` parallel processing option (Ex. `parallel: True`) |
+| `Threshold` | create mask for processing with thresholding <br> Options: <br> `type` thresholding type -- can be `"manual"` or automatic thresholding with `"otsu"` (Ex. `type: "otsu"`)<br> `thresh_value` to use if manual thresholding (Ex. `thresh_value: 1.0`) <br> `correction` factor to multiply threshold with for more stringent thresholding (Ex. `correction: 1.2`) |
+| `Open` | morphological opening on mask <br> Options: <br> `disk_size` disk size for opening (Ex. `disk_size: 10`) <br> `parallel` parallel processing option (Ex. `parallel: True`) |
+| `Close` | morphological closing on mask <br> Options: <br> `disk_size` disk size for closing (Ex. `disk_size: 10`) <br> `parallel` parallel processing option (Ex. `parallel: True`) |
+| `Fill` | morphological filling on mask (fill holes) |
+| `ApplyMask` | apply processed mask to image for final processing step |
+| `ExportNifti1` | export processed image or compressed image in the Nifti-1 format for image registration with HDIreg workflow in MIAAIM <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory") <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) |
 
 ## Contributing to HDIprep
-
-
-export_diagnostics: True
-output_dir: "/Users/joshuahess/Desktop/Test"
+If you are interested in contributing to HDIprep, access the contents of the HDIprep folder to see the software organization. Code structure is documented for each module.
