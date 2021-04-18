@@ -64,8 +64,8 @@ ProcessingSteps:
 | --- | --- |
 | 1. ImportOptions |
 | `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
-| `--flatten` | flatten pixels to array\
-                `True` if compressing images\
+| `--flatten` | flatten pixels to array \\
+                `True` if compressing images \\
                 `False` if histology processing|
 | `--subsample` | subsample image for compression (set `True` if compressing images) |
 | `--method` | subsampling method (options: `grid`, `random`, or `pseudo_random`) |
