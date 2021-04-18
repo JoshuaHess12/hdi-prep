@@ -60,15 +60,19 @@ ProcessingSteps:
 *Note: lists are indicated in YAML files by the '-' character. HDIprep will run the steps listed sequentially*
 
 #### Input Parameters:
-These options indicate import options inherited from class IntraModalityDataset and thus HDIimport:
-Required
-| Step | Options |
+| YAML Step | Options |
 | --- | --- |
-| ImportOptions Parameters |
+| 1. ImportOptions |
 | `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
 | `--flatten` | flatten pixels to array (set `True` if compressing images) |
-|  |  |
-
+| `--subsample` | subsample image for compression (set `True` if compressing images) |
+| `--method` | subsampling method (options: `grid`, `random`, or `pseudo_random`) |
+| `--grid_spacing` | tuple representing x and y spacing for grid sampling (Ex. `(5,5)` |
+| `--masks` | paths to masks to import in TIF format if compression portion of image |
+| `--save_mem` | option to reduce memory footprint (for large images set `True`) |
+| 2. ProcessingSteps |
+| `--RunOptimalUMAP` | run steady-state image compression |
+| `--RunUMAP` | run UMAP compression |
 #### ProcessingSteps Parameters:
 
 ## Contributing to HDIprep
