@@ -93,7 +93,7 @@ Options for import data and processing are listed below. Detailed descriptions o
 | `Close` | morphological closing on mask <br> Options: <br> `disk_size` disk size for closing (Ex. `disk_size: 10`) <br> `parallel` parallel processing option (Ex. `parallel: True`) |
 | `Fill` | morphological filling on mask (fill holes) |
 | `ApplyMask` | apply processed mask to image for final processing step |
-| `ExportNifti1` | export processed image or compressed image in the Nifti-1 format for image registration with HDIreg workflow in MIAAIM <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory") <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) |
+| `ExportNifti1` | export processed image or compressed image in the Nifti-1 format for image registration with HDIreg workflow in MIAAIM <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory"`) <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) |
 
 ## Contributing to HDIprep
 If you are interested in contributing to HDIprep, access the contents of the HDIprep folder to see the software organization. Code structure is documented for each module.
