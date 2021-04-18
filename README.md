@@ -75,12 +75,12 @@ Options for import data and processing are listed below. Detailed descriptions o
 | --- | --- |
 | 1. ImportOptions |
 | `--list_of_paths` | paths to input images (Ex. `./example.ome.tiff`) |
-| `--flatten` | flatten pixels to array <br> Options: <br>`True` if compressing images <br> `False` if histology processing |
-| `--subsample` | subsample image for compression  <br> Options: <br> `True` if compressing images <br> `False` if histology processing |
-| `--method` | subsampling method <br> <br> Options: <br> `grid` for uniform grid sampling <br> `random` for random coordinate sampling <br> `pseudo_random` for random sampling initalized by uniform grids |
+| `--flatten` | flatten pixels to array <br> <br> Options: <br>`True` if compressing images <br> <br> `False` if histology processing |
+| `--subsample` | subsample image for compression  <br> <br> Options: <br> `True` if compressing images <br> <br> `False` if histology processing |
+| `--method` | subsampling method <br> <br> Options: <br> `grid` for uniform grid sampling <br> <br> `random` for random coordinate sampling <br> <br> `pseudo_random` for random sampling initalized by uniform grids |
 | `--grid_spacing` | tuple representing x and y spacing for grid sampling (Ex. `(5,5)`) |
 | `--masks` | paths to TIF masks if compressing only a portion of image (Ex. `./mymask.tif`)|
-| `--save_mem` | option to reduce memory footprint <br> Options: <br> `True` if compressing very large images <br> `False` if running for interactive Python session |
+| `--save_mem` | option to reduce memory footprint <br> <br> Options: <br> `True` if compressing very large images <br> <br> `False` if running for interactive Python session |
 | 2. ProcessingSteps |
 | `RunOptimalUMAP` | run steady-state image compression with UMAP <br> <br> Options: <br> `n_neighbors` nearest neighbors (Ex. `n_neighbors: 15`) <br> <br> `landmarks` number of spectral centroids (Ex. `landmarks: 3000`) <br> <br> `metric` metric to use for UMAP (Ex. `metric: "euclidean"`) <br> <br> `random_state` for reproducible results (Ex. `random_state: 0`) <br> <br> `dim_range` tuple indicating range of dimensionalities for iterative embedding (Ex. `dim_range: "(1,10)"`) <br> <br> `export_diagnostics` exports csv and image of steady state compression results (Ex. `export_diagnostics: True`) <br> <br> `output_dir`  directory for export diagnostic expoting (Ex. `output_dir: "./outdirectory")` <br> <br> `**kwargs` keyword arguments to be passed to [UMAP](https://umap-learn.readthedocs.io/en/latest/basic_usage.html)|
 | `RunUMAP` | run UMAP compression <br> <br> Options: <br> `**kwargs` to be passed to UMAP (link above) |
