@@ -1,25 +1,21 @@
 # HDIimport
-Module for high-dimensional image importing to python.
+Module for high-dimensional and histology image importing.
 
-**File type(s) supported**:
-- ome.tif(f)
-- tif(f)
-- h(df)5
-- nifti
-
-## Implementation details
+## Details
 Class object for importing data is HDIreader inside of hdi_reader.py.
 
-***HDIreader arguments***:
-* *path_to_data*: path to imaging data (Ex: path/mydata.extension)
-* *path_to_markers*: path to marker list (Ex: path/mymarkers.csv or None)
-* *flatten*: True to return a flattened pixel data table for dimension reduction
-* *mask*: Path to tif mask to use for selecting a region to focus on in downstream preparation
-* * ***kwargs*: - inherited from SubsetCoordinates utils function
-  * *method*: "random" for uniform random coordinate sampling, "grid" for uniform grid spacing sampling, "pseudo_random" for percentage-based random sampling initialized by 2x2 uniform grid sampling (values must be larger than 0.25"
-  * *n*: number of samples if method is "random" or "pseudo_random" (Ex: 1000 for a count, 0.1 for percentage based sampling)
-  * *grid_spacing*: tuple indicating xy grid size if method is "grid" (Ex: (2,2) for sampling every other pixel in an image (25% sampling))
-
+| HDIreader | Options |
+| --- | --- |
+| `--path_to_data` | path to imaging data (Ex. `./example.ome.tiff`) |
+| `--path_to_markers` | path to imaging data or `None` (Ex. `./examplemarkers.csv`) |
+| `--flatten` | flatten pixels to array <br> <br> Options: <br>`True` if compressing images <br> <br> `False` if histology processing |
+| `--mask` | path to TIF masks if compressing only a portion of image (Ex. `./mymask.tif`)|
+| `--subsample` | subsample image for compression  <br> <br> Options: <br> `True` if compressing images <br> <br> `False` if histology processing |
+| `--**kwargs` | inherited from `SubsetCoordinates` in utils.py |
+| SubsetCoordinates | Options |
+| `--method` | subsampling method <br> <br> Options: <br> `grid` for uniform grid sampling <br> <br> `random` for random coordinate sampling <br> <br> `pseudo_random` for random sampling initalized by uniform grids |
+| `--grid_spacing` | tuple representing x and y spacing for grid sampling (Ex. `(5,5)`) |
+| `--n` | fraction indicating sampling number (between 0-1) for random or pseudo_random sampling (Ex. `(5,5)`) |
 *Note: If mask is used in addition to subsampling, subsamples are taken from within the masked region!*
 
 ## Classes and function structure
@@ -48,7 +44,7 @@ utils.py (general functions)
 HDIreader (class)
 └── .hdi: base component that stores imzMLreader, CYTreader, or NIFTI1reader classes
 ```
- 
+
 **CYTreader (class) components**
 ```bash
 CYTreader (class)

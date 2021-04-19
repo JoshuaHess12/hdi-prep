@@ -79,6 +79,7 @@ Options for import data and processing are listed below. Detailed descriptions o
 | `--subsample` | subsample image for compression  <br> <br> Options: <br> `True` if compressing images <br> <br> `False` if histology processing |
 | `--method` | subsampling method <br> <br> Options: <br> `grid` for uniform grid sampling <br> <br> `random` for random coordinate sampling <br> <br> `pseudo_random` for random sampling initalized by uniform grids |
 | `--grid_spacing` | tuple representing x and y spacing for grid sampling (Ex. `(5,5)`) |
+| `--n` | fraction indicating sampling number (between 0-1) for random or pseudo_random sampling (Ex. `(5,5)`) |
 | `--masks` | paths to TIF masks if compressing only a portion of image (Ex. `./mymask.tif`)|
 | `--save_mem` | option to reduce memory footprint <br> <br> Options: <br> `True` if compressing very large images <br> <br> `False` if running for interactive Python session |
 | 2. ProcessingSteps |
