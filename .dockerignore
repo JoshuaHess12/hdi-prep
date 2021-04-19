@@ -1,3 +1,8 @@
 .git
 DockerFile
 .cache
+__pypackages__/
+.DS_Store
+.dockerignore
+.env
+HDIprep/
