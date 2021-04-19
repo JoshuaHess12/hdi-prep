@@ -2,7 +2,7 @@
 High-dimensional image reading, compression, and preprocessing workflow as part of the MIAAIM framework.
 
 ## Implementation Details
-All steps  can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. HDIprep is available as a containerized workflow for easy installation via Docker <insert link>.
+All steps can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python.
 
 ### File Type(s) Supported
 - OME-TIF
