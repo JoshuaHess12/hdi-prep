@@ -1,4 +1,4 @@
-# HDIprep
+# hdi-prep
 High-dimensional image reading, compression, and preprocessing workflow as part of the MIAAIM framework.
 
 ## Implementation Details
@@ -96,5 +96,5 @@ Options for import data and processing are listed below. Detailed descriptions o
 | `ApplyMask` | apply processed mask to image for final processing step |
 | `ExportNifti1` | export processed image or compressed image in the Nifti-1 format for image registration with HDIreg workflow in MIAAIM <br> <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory"`) <br> <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) |
 
-## Contributing to HDIprep
-If you are interested in contributing to HDIprep, access the contents of the HDIprep folder to see the software organization. Code structure is documented for each module.
+## Contributing to hdi-prep
+If you are interested in contributing to hdi-prep, access the contents to see the software organization. Code structure is documented for each module.
