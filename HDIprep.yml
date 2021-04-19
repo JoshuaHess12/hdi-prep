@@ -1,5 +1,6 @@
-name: HDIprep
+name: hdiprep
 dependencies:
+  - python==3.8
   - pathlib
   - os
   - h5py
@@ -11,6 +12,7 @@ dependencies:
   - nibabel
   - scipy
   - operator
+  - tensorflow==2.2.0
   - umap-learn
   - uncertainties
   - seaborn

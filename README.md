@@ -11,11 +11,27 @@ All steps can be run using YAML files in conjunction with the function 'RunHDIpr
 - Nifti-1
 - imzML
 
-### Command Line Usage (recommended):
-All image processing and exporting can be run from the command line by calling python, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps:
+### Command Line Usage with Docker (recommended):
+All image processing can be run with dependecies installed via Docker, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps as follows:
+1. Install [Docker](https://www.docker.com) on your machine.
+2. Check that Docker is installed with `docker images`
+3. Place your data in the Docker container and enter shell with `docker run -it -v /path/to/data:/data joshuahess/hdi-prep:v1.0.1 bash`
+4. Run the pipeline with your new data using the following command:
 ```bash
-python command_hdi_prep.py --path_to_yaml /path/to/example.yaml --out_dir /path/to/outdirectory
+python app/command_hdi_prep.py --path_to_yaml /data/yourfile.yaml --out_dir /data
 ```
+### Usage with Conda:
+If you are unable to install Docker on your machine, install hdi-prep using a Conda environment:
+1. Install [Conda](https://conda.io/en/latest/).
+2. Clone the `hdi-prep` repo and use `HDIprep.yml` to set up the Conda environment 
+```bash
+git clone https://github.com/JoshuaHess12/hdi-prep.git
+cd hdiprep
+conda env create -f HDIprep.yml
+conda activate hdiprep
+python command_hdi_prep.py --path_to_yaml path/to/your.yaml --out_dir path/to/output-directory
+```
+
 ### YAML File Input:
 Steps for image processing are passed sequentially in a YAML file. Two input headers must be included in the file:
 1) ImportOptions and
@@ -69,7 +85,7 @@ ProcessingSteps:
 *Note: lists are indicated in YAML files by the '-' character. HDIprep will run the steps listed sequentially*
 
 #### Input Parameters:
-Options for import data and processing are listed below. Detailed descriptions of each function can be found within source code.
+Options for importing data and processing are listed below. Detailed descriptions of each function can be found within source code.
 | YAML Step | Options |
 | --- | --- |
 | 1. ImportOptions |
