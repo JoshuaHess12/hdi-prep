@@ -1,5 +1,5 @@
-FROM python:3.7
+FROM python:3.8
 
-RUN pip install pathlib os h5py scikit-image numpy pandas random pyimzml nibabel scipy operator umap-learn uncertainties seaborn matplotlib ast scikit-learn
+RUN pip install scikit-image numpy pandas pyimzml nibabel scipy h5py pathlib umap-learn uncertainties seaborn matplotlib scikit-learn PyYAML
 
 COPY . /app/

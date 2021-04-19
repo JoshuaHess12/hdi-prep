@@ -11,14 +11,13 @@ All steps  can be run using YAML files in conjunction with the function 'RunHDIp
 - Nifti-1
 - imzML
 
-### Command Line Usage with Docker (recommended):
-1. [Install]() nextflow and Docker. Check with `nextflow run hello` and `docker images` to make sure both are functional.
+### Command Line Usage (recommended):
 All image processing and exporting can be run from the command line by calling python, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps:
 ```bash
-python command_hdi_prep.py --path_to_yaml /path/to/example.yaml
+python command_hdi_prep.py --path_to_yaml /path/to/example.yaml --out_dir /path/to/outdirectory
 ```
 ### YAML File Input:
-Options/ordered steps for image processing are passed in a YAML file. Two input headers must be included in the YAML file:
+Steps for image processing are passed sequentially in a YAML file. Two input headers must be included in the file:
 1) ImportOptions and
 2) ProcessingSteps
 

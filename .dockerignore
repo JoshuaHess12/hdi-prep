@@ -5,4 +5,3 @@ __pypackages__/
 .DS_Store
 .dockerignore
 .env
-HDIprep/
