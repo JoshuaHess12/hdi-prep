@@ -15,8 +15,9 @@ All steps can be run using YAML files in conjunction with the function 'RunHDIpr
 All image processing can be run with dependecies installed via Docker, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps as follows:
 1. Install [Docker](https://www.docker.com) on your machine.
 2. Check that Docker is installed with `docker images`
-3. Place your data in the Docker container and enter shell with `docker run -it -v /path/to/data:/data joshuahess/hdi-prep:v1.0.1 bash`
-4. Run the pipeline with your new data using the following command:
+3. Pull the hdi-prep docker container `docker pull joshuahess/hdi-prep:latest` where latest is the version number.
+4. Mount your data in the Docker container and enter shell with `docker run -it -v /path/to/data:/data joshuahess/hdi-prep:latest bash`
+5. Run the pipeline with your new data using the following command:
 ```bash
 python app/command_hdi_prep.py --path_to_yaml /data/yourfile.yaml --out_dir /data
 ```
