@@ -103,16 +103,14 @@ class IntraModalityDataset:
     """Merge HDIimport classes storing imaging datasets"""
 
     # Create initialization
-    def __init__(self, list_of_HDIimports, modality):
+    def __init__(self, list_of_HDIimports):
         """initialization function taking list of HDIimport class objects.
 
         list_of_HDIimports: a list containing files to be merged (HDIimport classes)
-        modality: string indicating the modality name (Ex: "IMS", "IMC", or "H&E")
         """
 
         # Create objects
         self.set_dict = {}
-        self.modality = str(modality)
         self.umap_object = None
         self.umap_embeddings = {}
         self.umap_optimal_dim = None
@@ -1144,8 +1142,6 @@ class IntraModalityDataset:
                 os.path.join(
                     str(output_dir),
                     f.stem.replace(".ome.", "")
-                    + "_"
-                    + str(self.modality)
                     + "_processed.nii",
                 )
             )
@@ -1174,7 +1170,7 @@ class IntraModalityDataset:
 
 
 # Define function for reading data with multiple input paths
-def CreateDataset(list_of_paths, modality, masks=None, **kwargs):
+def CreateDataset(list_of_paths, masks=None, **kwargs):
     """Create an intramodality imaging dataset based on a given list of paths
     for imaging files
 
@@ -1201,7 +1197,7 @@ def CreateDataset(list_of_paths, modality, masks=None, **kwargs):
         data.append(p_dat)
     print("Concatenating Data...")
     # Concatenate the list of data to a single intramodality dataset
-    data = IntraModalityDataset(data, modality)
+    data = IntraModalityDataset(data)
     print("Done")
     # Return the IntraModalityDataset
     return data
