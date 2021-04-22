@@ -16,7 +16,7 @@ def ParseCommandYAML():
     parser.add_argument("--out_dir")
     args = parser.parse_args()
     # Create a dictionary object to pass to the next function
-    dict = {"im": args.im, "pars": args.path_to_yaml, "out_dir": args.out_dir}
+    dict = {"im": args.im, "pars": args.pars, "out_dir": args.out_dir}
     # Print the dictionary object
     print(dict)
     # Return the dictionary

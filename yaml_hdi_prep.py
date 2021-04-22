@@ -54,6 +54,10 @@ def RunHDIprepYAML(im, pars, out_dir):
             if step == "ExportNifti1":
                 # Add output
                 yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
+            # If this is a dictionary and is export nifti, add output dir
+            if (step == "RunOptimalUMAP" or step == "RunOptimalParametricUMAP"):
+                # Add output
+                yml["ProcessingSteps"][s][step]["output_dir"] = Path(out_dir)
             # Apply the processing step
             getattr(intramod_set, step)(**yml["ProcessingSteps"][s][step])
 
