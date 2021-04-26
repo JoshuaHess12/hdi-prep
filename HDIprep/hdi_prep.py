@@ -21,9 +21,9 @@ from ast import literal_eval
 from operator import itemgetter
 import uncertainties.unumpy as unp
 import uncertainties as unc
+from hdiutils.HDIimport import hdi_reader
 
 # Import custom modules
-from .HDIimport import hdi_reader
 from .fuzzy_operations import FuzzySetCrossEntropy
 from .morphology import MedFilter, Opening, Closing, NonzeroSlice, Thresholding, MorphFill
 from .utils import Exp, CreateHyperspectralImage, CreateHyperspectralImageRectangular, ExportNifti
