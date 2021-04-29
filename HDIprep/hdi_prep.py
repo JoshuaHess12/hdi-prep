@@ -1121,7 +1121,7 @@ class IntraModalityDataset:
             hdi_imp.hdi.data.processed_image = tmp_im
 
     # Add function for exporting UMAP nifti image
-    def ExportNifti1(self, output_dir, padding=None):
+    def ExportNifti1(self, output_dir, padding=None, target_size=None):
         """Exporting hyperspectral images resulting from UMAP and
         spatially mapping UMAP, or exporting processed histology images. Both of these
         conditions cant be true. One or the other will be exported, and it will be
@@ -1154,11 +1154,11 @@ class IntraModalityDataset:
                 # Otherwise export the image
                 else:
                     # Export the original image
-                    ExportNifti(hdi_imp.hdi.data.image, im_name, padding)
+                    ExportNifti(hdi_imp.hdi.data.image, im_name, padding, target_size)
             # Otherwise export the processed image
             else:
                 # Use utils export nifti function
-                ExportNifti(hdi_imp.hdi.data.processed_image, im_name, padding)
+                ExportNifti(hdi_imp.hdi.data.processed_image, im_name, padding, target_size)
             # Add exported file names to class object -- connect input file name with the exported name
             connect_dict.update({f: im_name})
 

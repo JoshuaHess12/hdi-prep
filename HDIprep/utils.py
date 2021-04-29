@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import nibabel as nib
 from pathlib import Path
+from skimage.transform import resize
 
 # Define function
 def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
@@ -84,7 +85,7 @@ def CreateHyperspectralImageRectangular(embedding, array_size, coordinates, scal
     # Return the hyperspectral image
     return im
 
-def ExportNifti(image, filename, padding=None):
+def ExportNifti(image, filename, padding=None, target_size=None):
     """This function will export your final images to nifti format for image
     registration with elastix.
 
@@ -100,6 +101,9 @@ def ExportNifti(image, filename, padding=None):
 
     # Print update
     print("Exporting nifti image stack...")
+    # Check to see if resizing
+    if target_size is not None:
+        image = resize(im,target_size)
     # Check to see if padding
     if padding is not None:
         image = np.pad(
