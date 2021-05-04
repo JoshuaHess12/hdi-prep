@@ -8,6 +8,7 @@ import pandas as pd
 import nibabel as nib
 from pathlib import Path
 from skimage.transform import resize
+from ast import literal_eval
 
 # Define function
 def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
@@ -98,6 +99,12 @@ def ExportNifti(image, filename, padding=None, target_size=None):
 
     # Create pathlib object from the filename
     filename = Path(filename)
+
+    # convert the padding and target size to tuple if present
+    if padding is not None:
+        padding = literal_eval(padding)
+    if target_size is not None:
+        target_size = literal_eval(target_size)
 
     # Print update
     print("Exporting nifti image stack...")
