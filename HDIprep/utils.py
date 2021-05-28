@@ -108,9 +108,6 @@ def ExportNifti(image, filename, padding=None, target_size=None):
 
     # Print update
     print("Exporting nifti image stack...")
-    # Check to see if resizing
-    if target_size is not None:
-        image = resize(image,target_size)
     # Check to see if padding
     if padding is not None:
         image = np.pad(
@@ -118,6 +115,9 @@ def ExportNifti(image, filename, padding=None, target_size=None):
             [(padding[0], padding[0]), (padding[1], padding[1]), (0, 0)],
             mode="constant",
         )
+    # Check to see if resizing
+    if target_size is not None:
+        image = resize(image,target_size)
     # Create nifti object -- transpose axes because of the transformation!
     # Check size
     if len(image.shape) > 2:
