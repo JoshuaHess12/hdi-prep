@@ -110,7 +110,7 @@ def ExportNifti(image, filename, padding=None, target_size=None):
     print("Exporting nifti image stack...")
     # Check to see if resizing
     if target_size is not None:
-        image = resize(im,target_size)
+        image = resize(image,target_size)
     # Check to see if padding
     if padding is not None:
         image = np.pad(
