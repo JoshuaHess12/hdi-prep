@@ -269,7 +269,7 @@ class IntraModalityDataset:
 
 
     def RunOptimalUMAP(
-        self, dim_range, landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
+        self, dim_range=(1,11), landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
     ):
         """Run UMAP over a range of dimensions to choose optimal embedding by empirical
         observation of fuzzy set cross entropy.
@@ -470,6 +470,8 @@ class IntraModalityDataset:
             # Export the metric values to csv
             ce_res_norm.to_csv(csv_path)
 
+        # set base component dimensionality
+        base.n_components = opt_dim
         # check if landmarks
         if self.landmarks is not None:
             # implement umap on the tmp frame -- faster than centroids method
@@ -481,8 +483,6 @@ class IntraModalityDataset:
             base.embedding_ = embed_dict[opt_dim]
         # Update the transform mode
         base.transform_mode = "embedding"
-        # set base compnent dimensionality
-        base.n_components = opt_dim
 
         # Unravel the UMAP embedding for each sample
         for f, tup in file_idx.items():
@@ -514,12 +514,11 @@ class IntraModalityDataset:
 
         # Add the umap object to the class
         self.umap_object = base
-
         # Update the optimal dimensionality
         self.umap_optimal_dim = opt_dim
 
     def RunOptimalParametricUMAP(
-        self, dim_range, landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
+        self, dim_range=(1,11), landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
     ):
         """Run UMAP over a range of dimensions to choose optimal embedding by empirical
         observation of fuzzy set cross entropy.
@@ -754,7 +753,6 @@ class IntraModalityDataset:
 
         # Add the umap object to the class
         self.umap_object = base
-
         # Update the optimal dimensionality
         self.umap_optimal_dim = opt_dim
 
