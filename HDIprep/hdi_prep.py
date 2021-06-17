@@ -1168,7 +1168,7 @@ class IntraModalityDataset:
 
 
 # Define function for reading data with multiple input paths
-def CreateDataset(list_of_paths, masks=None, **kwargs):
+def CreateDataset(list_of_paths, mask=None, **kwargs):
     """Create an intramodality imaging dataset based on a given list of paths
     for imaging files
 
@@ -1181,19 +1181,10 @@ def CreateDataset(list_of_paths, masks=None, **kwargs):
     for i in range(len(list_of_paths)):
         # Ensure that it is a pathlib object
         p = Path(list_of_paths[i])
-        # Check if masks is none
-        if masks is None:
-            # Read the data using hdi_reader
-            p_dat = hdi_reader.HDIreader(path_to_data=p, mask=None, **kwargs)
-        # Otherwise read each image with each mask in order
-        else:
-            # Ensure the mask is a pathlib object
-            m = Path(masks[i])
-            # Read the data using hdi_reader
-            p_dat = hdi_reader.HDIreader(path_to_data=p, mask=m, **kwargs)
+        # Read the data using hdi_reader
+        p_dat = hdi_reader.HDIreader(path_to_data=p, mask=mask, **kwargs)
         # Append this p_dat to the data list
         data.append(p_dat)
-    print("Concatenating Data...")
     # Concatenate the list of data to a single intramodality dataset
     data = IntraModalityDataset(data)
     print("Done")
