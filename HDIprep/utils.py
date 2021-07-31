@@ -10,17 +10,32 @@ from pathlib import Path
 from skimage.transform import resize
 from ast import literal_eval
 
+
 # Define function
 def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
     """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
-    imaging data by rescaling each channel from 0-1
+    imaging data by rescaling each channel from 0-1 (optional). All coordinates
+    in the image not listed in coordinates object will be masked
+    and set to 0 (background).
 
-    array_size: tuple indicating size of image
-    embedding: Embedding resulting from dimension reduction
-    coordinates: 1-indexed list of tuples indicating coordinates of image
+    Parameters
+    ----------
+    embedding: Pandas DataFrame
+        Indicates embedding coordinates from UMAP or another method.
 
-    All coordinates in the image not listed in coordinates object will be masked
-    and set to 0 (background)
+    array_size: tuple
+        Indicates size of image.
+
+    coordinates: 1-indexed list of tuples
+        Indicates pixel coordinates of image.
+
+    scale: Bool (Default: True)
+        Rescale pixel intensities on the range of 0-1.
+
+    Returns
+    -------
+    im: array
+        Reconstructed image.
     """
 
     # Create zeros array to fill with number channels equal to embedding dimension
@@ -59,14 +74,29 @@ def CreateHyperspectralImage(embedding, array_size, coordinates, scale=True):
 # Define function
 def CreateHyperspectralImageRectangular(embedding, array_size, coordinates, scale=True):
     """Fill a hyperspectral image from n-dimensional embedding of high-dimensional
-    imaging data by rescaling each channel from 0-1
+    imaging data by rescaling each channel from 0-1 (optional). All coordinates
+    in the image not listed in coordinates object will be masked
+    and set to 0 (background). This function assumes that the data you want
+    to reconstruct can be automatically reshaped into a rectangular array.
 
-    array_size: tuple indicating size of image
-    embedding: Embedding resulting from dimension reduction
-    coordinates: 1-indexed list of tuples indicating coordinates of image
+    Parameters
+    ----------
+    embedding: Pandas DataFrame
+        Indicates embedding coordinates from UMAP or another method.
 
-    All coordinates in the image not listed in coordinates object will be masked
-    and set to 0 (background)
+    array_size: tuple
+        Indicates size of image.
+
+    coordinates: 1-indexed list of tuples
+        Indicates pixel coordinates of image.
+
+    scale: Bool (Default: True)
+        Rescale pixel intensities on the range of 0-1.
+
+    Returns
+    -------
+    im: array
+        Reconstructed image.
     """
 
     # get the embedding shape
@@ -87,14 +117,22 @@ def CreateHyperspectralImageRectangular(embedding, array_size, coordinates, scal
     return im
 
 def ExportNifti(image, filename, padding=None, target_size=None):
-    """This function will export your final images to nifti format for image
-    registration with elastix.
+    """Export processed images resulting from UMAP and
+    spatially mapping UMAP, or exporting processed histology images.
 
-    image: numpy ndarray containing imaging data
-    filename: path (filename) of resulting exporting image (Ex: path/to/new/image.nii or image.nii)
-    padding: tuple indicating the pad to be added onto the image in the height and length direction
+    Parameters
+    ----------
+    image: array
+        Array that represents image to export.
 
-    Your filename endings must be .nii!!
+    filename: string
+        Path, including filename, to export processed nifti image to.
+
+    padding: tuple of type integer (padx,pady; Default: None)
+        Indicates height and length padding to add to the image before exporting.
+
+    target_size: tuple of type integer (sizex,sizey; Default: None)
+        Resize image using bilinear interpolation before exporting.
     """
 
     # Create pathlib object from the filename
@@ -133,5 +171,6 @@ def ExportNifti(image, filename, padding=None, target_size=None):
 
 
 def Exp(x, a, b, c):
-    """Exponential function to use for regression"""
+    """Exponential function to use for regression.
+    """
     return a * np.exp(-b * x) + c

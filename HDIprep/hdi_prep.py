@@ -29,14 +29,7 @@ from .morphology import MedFilter, Opening, Closing, NonzeroSlice, Thresholding,
 from .utils import Exp, CreateHyperspectralImage, CreateHyperspectralImageRectangular, ExportNifti
 
 
-
-
 def find_ab_params(spread, min_dist):
-    """Fit a, b params for the differentiable curve used in lower
-    dimensional fuzzy simplicial complex construction. We want the
-    smooth curve (from a pre-defined family with simple gradient) that
-    best matches an offset exponential decay.
-    """
 
     def curve(x, a, b):
         return 1.0 / (1.0 + a * x ** (2 * b))
@@ -49,9 +42,7 @@ def find_ab_params(spread, min_dist):
     return params[0], params[1]
 
 def check_base_object(base):
-    """
-    check base umap object before implementing simplicial set embedding
-    """
+
     # Handle all the optional plotting arguments, setting default
     if base.a is None or base.b is None:
         base._a, base._b = find_ab_params(base.spread, base.min_dist)
@@ -68,9 +59,7 @@ def check_base_object(base):
     return base
 
 def simplicial_set_embedding_HDIprep(base):
-    """
-    simplicial set embedding function from umap tailored to HDIprep input
-    """
+
     alt_embed,_ = umap.umap_.simplicial_set_embedding(
         data=base._raw_data,
         graph=base.graph_,
@@ -100,14 +89,39 @@ def simplicial_set_embedding_HDIprep(base):
 
 # Create a class for storing multiple datasets for a single modality
 class IntraModalityDataset:
-    """Merge HDIimport classes storing imaging datasets"""
+    """Merge HDIreader classes storing imaging datasets.
+
+    Parameters
+    ----------
+    list_of_HDIimports: list of length (n_samples)
+        Merges input HDIreader objects to be merged into single class.
+
+    Returns
+    -------
+    Initialized class objects:
+
+    * self.set_dict: dictionary
+        Dictionary containing each input samples filename as the key.
+
+    * self.umap_object: object of class UMAP
+        Stores any UMAP class objects after running UMAP.
+
+    * self.umap_embeddings: dictionary
+        Dictionary storing UMAP embeddings for each input sample.
+
+    * self.umap_optimal_dim: integer
+        Specifies steady state embedding dimensionality for UMAP.
+
+    * self.processed_images_export: None or dictionary after ``ExportNifti1``
+        Dictionary that links input file names with new export file names.
+
+    * self.landmarks: integer
+        Specifies number of landmarks to use for steady state embedding dimensionality
+        estimation.
+    """
 
     # Create initialization
     def __init__(self, list_of_HDIimports):
-        """initialization function taking list of HDIimport class objects.
-
-        list_of_HDIimports: a list containing files to be merged (HDIimport classes)
-        """
 
         # Create objects
         self.set_dict = {}
@@ -125,11 +139,24 @@ class IntraModalityDataset:
     # Create dimension reduction method with UMAP
     def RunUMAP(self, **kwargs):
         """Creates an embedding of high-dimensional imaging data. Each
-        pixel will be represented by its coordinates scaled from 0-1 after
-        hyperspectral image construction.
+        pixel will be represented by its coordinates in the UMAP projection
+        space.
 
-        Returned will be a numpy array containing pixels and their
-        embedded coordinates.
+        Parameters
+        ----------
+        kwargs: arguments passed to UMAP.
+            Important arguments:
+
+            * n_neighbors: integer
+                Specifies number of nearest neighbors.
+
+            * random_state: integer
+                Specifies random state for reproducibility.
+
+        Returns
+        -------
+        self.umap_embeddings: dictionary
+            Stores umap coordinates for each input file as the dictionary key.
         """
 
         # Create a dictionary to store indices in
@@ -203,12 +230,26 @@ class IntraModalityDataset:
 
     # Create dimension reduction method with UMAP
     def RunParametricUMAP(self, **kwargs):
-        """Creates an embedding of high-dimensional imaging data. Each
-        pixel will be represented by its coordinates scaled from 0-1 after
-        hyperspectral image construction.
+        """Creates an embedding of high-dimensional imaging data using
+        UMAP parametrized by neural network. Each
+        pixel will be represented by its coordinates in the UMAP projection
+        space.
 
-        Returned will be a numpy array containing pixels and their
-        embedded coordinates.
+        Parameters
+        ----------
+        kwargs: key word arguments passed to UMAP.
+            Important arguments:
+
+            * n_neighbors: integer
+                Specifies number of nearest neighbors.
+
+            * random_state: integer
+                Specifies random state for reproducibility.
+
+        Returns
+        -------
+        self.umap_embeddings: dictionary
+            Stores umap coordinates for each input file as the dictionary key.
         """
 
         # Create a dictionary to store indices in
@@ -271,15 +312,41 @@ class IntraModalityDataset:
     def RunOptimalUMAP(
         self, dim_range=(1,11), landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
     ):
-        """Run UMAP over a range of dimensions to choose optimal embedding by empirical
-        observation of fuzzy set cross entropy.
+        """Run UMAP over a range of dimensions to choose steady state embedding
+        by fitting an exponential regression model to the fuzzy set cross entropy
+        curve.
 
-        dim_range: tuple indicating a range of embedding dimensions (Ex: (1,11) is 1-10 -- python range)
-        normalized_cutoff: error delta to stop embedding -- not always going to converge, so all embedding
-        dimensions will be tested. If cutoff is not reached, a warning will appear, and the lowest delta
-        will be used
-        **kwargs: extra parameters to pass to UMAP (Ex: n_neighbors = 15, random_state = 223)
+        Parameters
+        ----------
+        dim_range: tuple (low_dim, high_dim; Default: (1,11))
+            Indicates a range of embedding dimensions.
+
+        landmarks: integer (Default: 3000)
+            Specifies number of landmarks to use for steady state embedding dimensionality
+            estimation.
+
+        export_diagnostics: Bool (Default: False)
+            Indicates whether or not to export a csv file and jpeg image showing
+            steady state embedding dimensionality reports. These report the
+            normalized (0-1 range) fuzzy set cross entropy across the range
+            of indicated dimensionalities.
+
+        output_dir: string (Default: None)
+            Path to export data to if exporting diagnostic images and plots.
+
+        n_jobs: integer (Default: 1)
+            Path to export data to if exporting diagnostic images and plots.
+
+        kwargs: key word arguments passed to UMAP.
+            Important arguments:
+
+            * n_neighbors: integer
+                Specifies number of nearest neighbors.
+
+            * random_state: integer
+                Specifies random state for reproducibility.
         """
+
         # check for landmarks
         self.landmarks = landmarks
 
@@ -520,18 +587,41 @@ class IntraModalityDataset:
     def RunOptimalParametricUMAP(
         self, dim_range=(1,11), landmarks=3000, export_diagnostics=False, output_dir=None, n_jobs=1, **kwargs
     ):
-        """Run UMAP over a range of dimensions to choose optimal embedding by empirical
-        observation of fuzzy set cross entropy.
-        ***Note that current implementation will recompute fuzzy simplicial set  every iteration of embedding.
-        This will most likely not cause too large of performance decrease when using spectral landmarks. Can
-        be intense without landmarks however, and we do not recommend.
+        """Run parametric UMAP over a range of dimensions to choose steady state embedding
+        by fitting an exponential regression model to the fuzzy set cross entropy
+        curve.
 
-        dim_range: tuple indicating a range of embedding dimensions (Ex: (1,11) is 1-10 -- python range)
-        normalized_cutoff: error delta to stop embedding -- not always going to converge, so all embedding
-        dimensions will be tested. If cutoff is not reached, a warning will appear, and the lowest delta
-        will be used
-        **kwargs: extra parameters to pass to UMAP (Ex: n_neighbors = 15, random_state = 223)
+        Parameters
+        ----------
+        dim_range: tuple (low_dim, high_dim; Default: (1,11))
+            Indicates a range of embedding dimensions.
+
+        landmarks: integer (Default: 3000)
+            Specifies number of landmarks to use for steady state embedding dimensionality
+            estimation.
+
+        export_diagnostics: Bool (Default: False)
+            Indicates whether or not to export a csv file and jpeg image showing
+            steady state embedding dimensionality reports. These report the
+            normalized (0-1 range) fuzzy set cross entropy across the range
+            of indicated dimensionalities.
+
+        output_dir: string (Default: None)
+            Path to export data to if exporting diagnostic images and plots.
+
+        n_jobs: integer (Default: 1)
+            Path to export data to if exporting diagnostic images and plots.
+
+        kwargs: key word arguments passed to UMAP.
+            Important arguments:
+
+            * n_neighbors: integer
+                Specifies number of nearest neighbors.
+
+            * random_state: integer
+                Specifies random state for reproducibility.
         """
+
         # check for landmarks
         self.landmarks = landmarks
 
@@ -758,7 +848,29 @@ class IntraModalityDataset:
 
     # Add function for creating hyperspectral image from UMAP
     def SpatiallyMapUMAP(self,method="rectangular",save_mem=True):
-        """Spatially fill arrays based on UMAP embeddings. Must be run after RunUMAP."""
+        """Map UMAP projections into the spatial domain (2-dimensional) using
+        each pixel's original XY positions.
+
+        Parameters
+        ----------
+        method: string (Default: "rectangular")
+            Type of mapping to use for reconstructing an image from the UMAP
+            embeddings.
+
+            Options include:
+
+            * "rectangular"
+                Use for images that do not have an associated mask with them. This
+                is the fastest option for spatial reconstruction.
+
+            * "coordinate"
+                Use each pixel's XY coordinate to fill an array one pixel at a
+                time. This must be used for images that contain masks or are
+                not stored as rectangular arrays.
+
+        save_mem: Bool (Default: True)
+            Save memory by deleting reserves of full images and intermediate steps.
+        """
 
         # Check to make sure that UMAP object in class is not empty
         if self.umap_object is None:
@@ -880,11 +992,11 @@ class IntraModalityDataset:
 
     # Create definition for image filtering and processing
     def ApplyManualMask(self):
-        """Applying the input mask to image. This function is
+        """Apply input mask to image. This function is
         primarily used on histology images and images that do not need dimension
         reduction. Dimension reduction with a mask will by default zero all other pixels
-        in the image outside of the mask. Use this function if not performing dimension
-        reduction.
+        in the image outside of the mask, but do not use this function if
+        performing dimension reduction.
         """
 
         # Iterate through the set dictionary
@@ -927,10 +1039,15 @@ class IntraModalityDataset:
     def MedianFilter(self, filter_size, parallel=False):
         """Median filtering of images to remove salt and pepper noise.
         A circular disk is used for the filtering. Images that are not single channel
-        are automatically converted to grayscale prior to filtering
+        are automatically converted to grayscale prior to filtering.
 
-        filter_size: size of disk to use for filter.
-        parallel: parallel processing using all processors or not
+        Parameters
+        ----------
+        filter_size: integer
+            Size of disk to use for the median filter.
+
+        parallel: Bool (Default: False)
+            Use parallel processing with all available CPUs.
         """
 
         # Iterate through the set dictionary
@@ -954,15 +1071,28 @@ class IntraModalityDataset:
                     hdi_imp.hdi.data.processed_image, filter_size, parallel
                 )
 
-    def Threshold(self, type, thresh_value=None, correction=1.0):
-        """Otsu (manual) thresholding of grayscale images. Returns a sparse boolean
+    def Threshold(self, type="otsu", thresh_value=None, correction=1.0):
+        """Threshold grayscale images. Produces a sparse boolean
         mask.
 
-        image: numpy array that represents image
-        type: Type of thresholding to use. Options are 'manual' or "otsu"
-        thresh_value: If manual masking, insert a threshold value
-        correction: Correction factor after thresholding. Values >1 make the threshold more
-        stringent. By default, value with be 1 (identity)
+        Parameters
+        ----------
+        type: string (Default: "otsu")
+            Type of thresholding to use.
+
+            Options include:
+
+            * "otsu"
+                Otsu automated thresholding.
+
+            * "manual"
+                Set manual threshold value.
+
+        thresh_value: float (Default: None)
+            Manual threshold to use if ``type`` is set to "manual"
+
+        correction: float (Default: 1.0)
+            Correct factor to multiply threshold by for more stringent thresholding.
         """
 
         # Iterate through the set dictionary
@@ -987,10 +1117,16 @@ class IntraModalityDataset:
                 )
 
     def Open(self, disk_size, parallel=False):
-        """Morphological opening on boolean array (mask). A circular disk is used for the filtering.
+        """Morphological opening on boolean array (i.e., a mask).
+        A circular disk is used for the filtering.
 
-        disk_size: size of disk to use for filter.
-        parallel: number of proceses to use for calculations
+        Parameters
+        ----------
+        filter_size: integer
+            Size of disk to use for the median filter.
+
+        parallel: Bool (Default: False)
+            Use parallel processing with all available CPUs.
         """
 
         # Iterate through the set dictionary
@@ -1015,10 +1151,16 @@ class IntraModalityDataset:
                 )
 
     def Close(self, disk_size, parallel=False):
-        """Morphological closing on boolean array (mask). A circular disk is used for the filtering.
+        """Morphological closing on boolean array (i.e., a mask).
+        A circular disk is used for the filtering.
 
-        disk_size: size of disk to use for filter.
-        parallel: number of proceses to use for calculations
+        Parameters
+        ----------
+        filter_size: integer
+            Size of disk to use for the median filter.
+
+        parallel: Bool (Default: False)
+            Use parallel processing with all available CPUs.
         """
 
         # Iterate through the set dictionary
@@ -1043,7 +1185,8 @@ class IntraModalityDataset:
                 )
 
     def Fill(self):
-        """Morphological filling on a binary mask. Fills holes"""
+        """Morphological filling on a binary mask. Fills holes in the given mask.
+        """
 
         # Iterate through the set dictionary
         for f, hdi_imp in self.set_dict.items():
@@ -1068,9 +1211,9 @@ class IntraModalityDataset:
 
     def NonzeroBox(self):
         """Use a nonzero indices of a binary mask to create a bounding box for
-        the mask itself and for the original image. This is to be used so that
+        the mask itself and for the original image. This isused so that
         a controlled amount of padding can be added to the edges of the images in
-        a consistent manner
+        a consistent manner.
         """
 
         # Iterate through the set dictionary
@@ -1095,13 +1238,11 @@ class IntraModalityDataset:
 
     # Create definition for image filtering and processing
     def ApplyMask(self):
-        """Applying mask to image. This function is
+        """Apply mask to image. This function is
         primarily used on histology images and images that do not need dimension
-        reduction. Dimension reduction with a mask will by default zero all other pixels
-        in the image outside of the mask. Use this function if not performing dimension
-        reduction. The mask used in this process will be the processed image, and not
-        the input mask with the image. Should be used after a series of morphological
-        operations
+        reduction. Should be used after a series of morphological
+        operations. This applies the resulting mask of thresholding and
+        morphological operations.
         """
 
         # Iterate through the set dictionary
@@ -1120,14 +1261,19 @@ class IntraModalityDataset:
 
     # Add function for exporting UMAP nifti image
     def ExportNifti1(self, output_dir, padding=None, target_size=None):
-        """Exporting hyperspectral images resulting from UMAP and
-        spatially mapping UMAP, or exporting processed histology images. Both of these
-        conditions cant be true. One or the other will be exported, and it will be
-        determined automatically from the class objects
+        """Export processed images resulting from UMAP and
+        spatially mapping UMAP, or exporting processed histology images.
 
-        filename: input filename to use ExportNifti function from utils.
-        - path (filename) of resulting exporting image (Ex: path/to/new/image.nii or image.nii)
-        padding: tuple indicating height and length 0 pixels padding to add to the image before exporting
+        Parameters
+        ----------
+        output_dir: string
+            Path to output directory to store processed nifti image.
+
+        padding: tuple of type integer (padx,pady; Default: None)
+            Indicates height and length padding to add to the image before exporting.
+
+        target_size: tuple of type integer (sizex,sizey; Default: None)
+            Resize image using bilinear interpolation before exporting.
         """
 
         # Create dictionary with connected file names
@@ -1170,9 +1316,18 @@ class IntraModalityDataset:
 # Define function for reading data with multiple input paths
 def CreateDataset(list_of_paths, mask=None, **kwargs):
     """Create an intramodality imaging dataset based on a given list of paths
-    for imaging files
+    for imaging files.
 
-    returns an instance of class IntraModalityDataset
+    Parameters
+    ----------
+    list_of_paths: list of length n_samples.
+        Input data to concatenate into a single dataset. Each input dataset
+        is of the class HDIreader from the hdiutils python package.
+
+    Returns
+    -------
+    data: class object.
+        Dataset with concatenated image data.
     """
 
     # Create a list to store the hdi_reader sets in
