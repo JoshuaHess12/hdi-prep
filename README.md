@@ -2,16 +2,16 @@
 High-dimensional image reading, compression, and preprocessing workflow as part of the MIAAIM framework.
 
 ## Implementation Details
-All steps can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python.
+All steps can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. The easiest way to use `hdi-prep` in the Python environment is through the pip installable [miaaim-python package](https://github.com/JoshuaHess12/miaaim-python). An API reference for Python usage is available at [miaaim.org](https://miaaim.org).
 
 ### File Type(s) Supported
 - OME-TIF
 - TIF
 - HDF5
-- Nifti-1
+- NIfTI-1
 - imzML
 
-### Command Line Usage with Docker (recommended):
+### Command Line Usage with Docker:
 All image processing can be run with dependecies installed via Docker, the command_hdi_prep.py code, and entering the path to a .yaml file that contains processing steps as follows:
 1. Install [Docker](https://www.docker.com) on your machine.
 2. Check that Docker is installed with `docker images`
@@ -21,15 +21,12 @@ All image processing can be run with dependecies installed via Docker, the comma
 ```bash
 python app/command_hdi_prep.py --path_to_yaml /data/yourfile.yaml --out_dir /data
 ```
-### Usage with Conda:
-If you are unable to install Docker on your machine, install hdi-prep using a Conda environment:
-1. Install [Conda](https://conda.io/en/latest/).
-2. Clone the `hdi-prep` repo and use `HDIprep.yml` to set up the Conda environment 
+### Usage without Docker:
+If you are unable to install Docker on your machine, you can clone the `hdi-prep` repo and use it from the command line:
+1. Clone the `hdi-prep` repo and install requirements in the `HDIprep.yml` file.
 ```bash
 git clone https://github.com/JoshuaHess12/hdi-prep.git
-cd hdiprep
-conda env create -f HDIprep.yml
-conda activate hdiprep
+cd hdi-prep
 python command_hdi_prep.py --path_to_yaml path/to/your.yaml --out_dir path/to/output-directory
 ```
 
@@ -72,20 +69,20 @@ ProcessingSteps:
       # reproducible results
       random_state: 1221
       # dimension range for steady state compression
-      dim_range: (1,10)
+      dim_range: (1,11)
       # export diagnostics for steady state compression
       export_diagnostics: True
       # output directory
       output_dir: "path/to/output-directory"
   # spatial reconstruction of UMAP embedding
   - SpatiallyMapUMAP
-  # export nifti file for registering with Elastix
+  # export NIfTI file for registering with Elastix
   - ExportNifti1:
       output_dir: "path/to/output-directory"
 ```
 *Note: lists are indicated in YAML files by the '-' character. HDIprep will run the steps listed sequentially*
 
-#### Input Parameters:
+#### Input Parameters Command Line Usage:
 Options for importing data and processing are listed below. Detailed descriptions of each function can be found within source code.
 | YAML Step | Options |
 | --- | --- |
@@ -110,7 +107,7 @@ Options for importing data and processing are listed below. Detailed description
 | `Close` | morphological closing on mask <br> <br> Options: <br> `disk_size` disk size for closing (Ex. `disk_size: 10`) <br> <br> `parallel` parallel processing option (Ex. `parallel: True`) |
 | `Fill` | morphological filling on mask (fill holes) |
 | `ApplyMask` | apply processed mask to image for final processing step |
-| `ExportNifti1` | export processed image or compressed image in the Nifti-1 format for image registration with HDIreg workflow in MIAAIM <br> <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory"`) <br> <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) |
+| `ExportNifti1` | export processed image or compressed image in the NIfTI-1 format for image registration with HDIreg workflow in MIAAIM <br> <br> Options: <br> `output_dir` output directory (Ex. `output_dir: "./outdirectory"`) <br> <br> `padding` border padding to add to image (useful for registration) (Ex. `padding: (50,50)`) <br> <br> `target_size` resulting resize shape after padding to match with corresponding image (Ex. `target_size: (1000,1500)`) |
 
 ## Contributing to hdi-prep
 If you are interested in contributing to hdi-prep, access the contents to see the software organization. Code structure is documented for each module.
