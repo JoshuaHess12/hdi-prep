@@ -128,10 +128,10 @@ def ExportNifti(image, filename, padding=None, target_size=None):
     filename: string
         Path, including filename, to export processed nifti image to.
 
-    padding: tuple of type integer (padx,pady; Default: None)
+    padding: string of tuple of type integer (padx,pady; Default: None)
         Indicates height and length padding to add to the image before exporting.
 
-    target_size: tuple of type integer (sizex,sizey; Default: None)
+    target_size: string tuple of type integer (sizex,sizey; Default: None)
         Resize image using bilinear interpolation before exporting.
     """
 

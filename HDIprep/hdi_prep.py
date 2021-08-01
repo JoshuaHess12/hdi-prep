@@ -335,7 +335,7 @@ class IntraModalityDataset:
             Path to export data to if exporting diagnostic images and plots.
 
         n_jobs: integer (Default: 1)
-            Path to export data to if exporting diagnostic images and plots.
+            Number of cores to use for calculating pairwise distances for fuzzy set cross entropy.
 
         kwargs: key word arguments passed to UMAP.
             Important arguments:
@@ -610,7 +610,7 @@ class IntraModalityDataset:
             Path to export data to if exporting diagnostic images and plots.
 
         n_jobs: integer (Default: 1)
-            Path to export data to if exporting diagnostic images and plots.
+            Number of cores to use for calculating pairwise distances for fuzzy set cross entropy.
 
         kwargs: key word arguments passed to UMAP.
             Important arguments:
@@ -1269,10 +1269,10 @@ class IntraModalityDataset:
         output_dir: string
             Path to output directory to store processed nifti image.
 
-        padding: tuple of type integer (padx,pady; Default: None)
+        padding: string of tuple of type integer (padx,pady; Default: None)
             Indicates height and length padding to add to the image before exporting.
 
-        target_size: tuple of type integer (sizex,sizey; Default: None)
+        target_size: string tuple of type integer (sizex,sizey; Default: None)
             Resize image using bilinear interpolation before exporting.
         """
 
