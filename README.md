@@ -2,7 +2,7 @@
 High-dimensional image reading, compression, and preprocessing workflow as part of the MIAAIM framework.
 
 ## Implementation Details
-All steps can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. The easiest way to use `hdi-prep` in the Python environment is through the pip installable [miaaim-python package](https://github.com/JoshuaHess12/miaaim-python). An API reference for Python usage is available at [miaaim.org](https://miaaim.org).
+All steps can be run using YAML files in conjunction with the function 'RunHDIprepYAML' from yaml_hdi_prep.py. YAML inputs can be run from command line, or can be called in Python. The easiest way to use `hdi-prep` in the Python environment is through the pip installable [miaaim-python package](https://github.com/JoshuaHess12/miaaim-python). An API reference for Python usage is available at [https://joshuahess12.github.io/miaaim-python](https://joshuahess12.github.io/miaaim-python).
 
 ### File Type(s) Supported
 - OME-TIF
